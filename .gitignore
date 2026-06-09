@@ -1,0 +1,25 @@
+# Gradle / build output
+.gradle/
+build/
+*/build/
+run/
+*/run/
+
+# Build logs / transient
+build-output.log
+build-exit.txt
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.classpath
+*.project
+.settings/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db

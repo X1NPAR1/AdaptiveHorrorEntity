@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "adaptivehorror",
+  "version": "${version}",
+  "name": "Adaptive Horror Entity",
+  "description": "An intelligent supernatural presence that makes you feel watched.",
+  "authors": ["AdaptiveHorror"],
+  "license": "All Rights Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.adaptivehorror.fabric.AdaptiveHorrorFabric"],
+    "client": ["com.adaptivehorror.fabric.client.AdaptiveHorrorFabricClient"]
+  },
+  "accessWidener": "adaptivehorror.accesswidener",
+  "mixins": [
+    "adaptivehorror.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21"
+  }
+}

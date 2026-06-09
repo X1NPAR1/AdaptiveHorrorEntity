@@ -1,0 +1,20 @@
+{
+  "entity.adaptivehorror.stalker": "",
+  "entity.adaptivehorror.fake_player": "",
+
+  "adaptivehorror.disclaimer.title": "Before You Continue",
+  "adaptivehorror.disclaimer.body": "This mod is a work of fiction designed to create a horror experience.\n\n§f• It is NOT malware.\n• It does NOT intentionally damage your files.\n• It makes NO permanent changes to your system.\n• It uses only permitted, in-game functionality.\n\nSome effects may be disturbing. Every feature can be disabled in the configuration file.",
+  "adaptivehorror.disclaimer.accept": "I Understand - Continue",
+  "adaptivehorror.disclaimer.quit": "Leave World",
+
+  "adaptivehorror.chat.watching": "I'm watching.",
+  "adaptivehorror.chat.turn_around": "Turn around.",
+  "adaptivehorror.chat.not_alone": "You are not alone.",
+  "adaptivehorror.chat.dont_sleep": "Don't sleep.",
+  "adaptivehorror.chat.too_late": "Too late.",
+
+  "adaptivehorror.sign.look_behind": "LOOK BEHIND",
+  "adaptivehorror.sign.i_see_you": "I SEE YOU",
+  "adaptivehorror.sign.go_home": "GO HOME",
+  "adaptivehorror.sign.dont_sleep": "DON'T SLEEP"
+}

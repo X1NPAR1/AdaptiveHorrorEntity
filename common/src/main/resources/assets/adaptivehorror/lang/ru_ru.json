@@ -1,0 +1,19 @@
+{
+  "entity.adaptivehorror.stalker": "",
+
+  "adaptivehorror.disclaimer.title": "Прежде чем продолжить",
+  "adaptivehorror.disclaimer.body": "Этот мод — вымысел, созданный для атмосферы ужаса.\n\n§f• Это НЕ вредоносная программа.\n• Он НЕ повреждает ваши файлы намеренно.\n• Он НЕ вносит постоянных изменений в систему.\n• Он использует только разрешённые игровые функции.\n\nНекоторые эффекты могут быть пугающими. Любую функцию можно отключить в файле конфигурации.",
+  "adaptivehorror.disclaimer.accept": "Понятно — продолжить",
+  "adaptivehorror.disclaimer.quit": "Покинуть мир",
+
+  "adaptivehorror.chat.watching": "Я наблюдаю.",
+  "adaptivehorror.chat.turn_around": "Обернись.",
+  "adaptivehorror.chat.not_alone": "Ты не один.",
+  "adaptivehorror.chat.dont_sleep": "Не спи.",
+  "adaptivehorror.chat.too_late": "Слишком поздно.",
+
+  "adaptivehorror.sign.look_behind": "ОБЕРНИСЬ",
+  "adaptivehorror.sign.i_see_you": "Я ВИЖУ ТЕБЯ",
+  "adaptivehorror.sign.go_home": "ИДИ ДОМОЙ",
+  "adaptivehorror.sign.dont_sleep": "НЕ СПИ"
+}

@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All Rights Reserved"
+issueTrackerURL = "https://github.com/X1NPAR1/AdaptiveHorrorEntity/issues"
+
+[[mods]]
+modId = "adaptivehorror"
+version = "${version}"
+displayName = "Adaptive Horror Entity"
+authors = "AdaptiveHorror"
+description = '''
+An intelligent supernatural presence that makes you feel watched. A single stalking entity, adaptive
+AI, and a scalable horror scheduler - psychological tension over cheap jumpscares.
+'''
+
+[[dependencies.adaptivehorror]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "[21.1,)"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.adaptivehorror]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "[1.21.1,1.22)"
+    ordering = "NONE"
+    side = "BOTH"

@@ -1,0 +1,19 @@
+{
+  "entity.adaptivehorror.stalker": "",
+
+  "adaptivehorror.disclaimer.title": "Bevor du fortfährst",
+  "adaptivehorror.disclaimer.body": "Diese Mod ist ein fiktives Werk, das ein Horror-Erlebnis erzeugen soll.\n\n§f• Sie ist KEINE Schadsoftware.\n• Sie beschädigt KEINE Dateien absichtlich.\n• Sie nimmt KEINE dauerhaften Änderungen an deinem System vor.\n• Sie nutzt nur erlaubte Funktionen im Spiel.\n\nManche Effekte können verstörend sein. Jede Funktion lässt sich in der Konfiguration deaktivieren.",
+  "adaptivehorror.disclaimer.accept": "Verstanden - Fortfahren",
+  "adaptivehorror.disclaimer.quit": "Welt verlassen",
+
+  "adaptivehorror.chat.watching": "Ich beobachte dich.",
+  "adaptivehorror.chat.turn_around": "Dreh dich um.",
+  "adaptivehorror.chat.not_alone": "Du bist nicht allein.",
+  "adaptivehorror.chat.dont_sleep": "Schlaf nicht.",
+  "adaptivehorror.chat.too_late": "Zu spät.",
+
+  "adaptivehorror.sign.look_behind": "SCHAU ZURÜCK",
+  "adaptivehorror.sign.i_see_you": "ICH SEHE DICH",
+  "adaptivehorror.sign.go_home": "GEH NACH HAUSE",
+  "adaptivehorror.sign.dont_sleep": "SCHLAF NICHT"
+}

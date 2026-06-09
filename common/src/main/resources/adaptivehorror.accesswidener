@@ -1,0 +1,3 @@
+accessWidener	v1	named
+# No widened members yet. Declared here so both loaders share one access-widener as the mod grows
+# (e.g. when client effects need access to private rendering internals).

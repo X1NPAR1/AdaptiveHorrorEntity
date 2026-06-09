@@ -1,0 +1,19 @@
+architectury {
+    common(rootProject.enabled_platforms.split(","))
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/adaptivehorror.accesswidener")
+}
+
+// No annotation processors in common (we use a ServiceLoader abstraction, not @ExpectPlatform);
+// disable processing so Architectury's injectables AP cannot interfere.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add("-proc:none")
+}
+
+dependencies {
+    // Common depends only on the Architectury plugin for source-set wiring. Loader specifics go
+    // through our own ServiceLoader abstraction (com.adaptivehorror.platform). Logging uses the
+    // SLF4J facade, which Minecraft 1.21.1 bundles.
+}

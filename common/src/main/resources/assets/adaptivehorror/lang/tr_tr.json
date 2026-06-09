@@ -1,0 +1,19 @@
+{
+  "entity.adaptivehorror.stalker": "",
+
+  "adaptivehorror.disclaimer.title": "Devam Etmeden Önce",
+  "adaptivehorror.disclaimer.body": "Bu mod, bir korku deneyimi yaratmak için tasarlanmış kurgusal bir çalışmadır.\n\n§f• Zararlı yazılım DEĞİLDİR.\n• Dosyalarınıza kasıtlı olarak zarar VERMEZ.\n• Sisteminizde kalıcı değişiklik YAPMAZ.\n• Yalnızca oyun içi izin verilen işlevleri kullanır.\n\nBazı efektler rahatsız edici olabilir. Her özellik yapılandırma dosyasından kapatılabilir.",
+  "adaptivehorror.disclaimer.accept": "Anladım - Devam Et",
+  "adaptivehorror.disclaimer.quit": "Dünyadan Çık",
+
+  "adaptivehorror.chat.watching": "İzliyorum.",
+  "adaptivehorror.chat.turn_around": "Arkana dön.",
+  "adaptivehorror.chat.not_alone": "Yalnız değilsin.",
+  "adaptivehorror.chat.dont_sleep": "Uyuma.",
+  "adaptivehorror.chat.too_late": "Çok geç.",
+
+  "adaptivehorror.sign.look_behind": "ARKANA BAK",
+  "adaptivehorror.sign.i_see_you": "SENİ GÖRÜYORUM",
+  "adaptivehorror.sign.go_home": "EVİNE GİT",
+  "adaptivehorror.sign.dont_sleep": "UYUMA"
+}
