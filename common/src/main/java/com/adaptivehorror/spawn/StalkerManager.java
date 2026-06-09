@@ -1,6 +1,7 @@
 package com.adaptivehorror.spawn;
 
 import com.adaptivehorror.ai.PlayerHorrorState;
+import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.entity.StalkerEntity;
 import com.adaptivehorror.registry.ModEntities;
@@ -77,13 +78,21 @@ public final class StalkerManager {
         handleRelocate(player, active, state, config, random);
     }
 
-    /** Force-spawns a stalker in the peripheral arc, replacing any existing one. For debug commands. */
-    public static boolean forceSpawn(ServerPlayer player, PlayerHorrorState state,
-                                     HorrorConfig config, Random random) {
+    /**
+     * Force-spawns a stalker for debug commands, replacing any existing one. Deliberately close
+     * (10-25 blocks) and in the peripheral arc so it is actually visible while testing - normal
+     * gameplay spawns it far away. Returns the spawn position, or null if none was found.
+     */
+    @Nullable
+    public static BlockPos forceSpawn(ServerPlayer player, PlayerHorrorState state, Random random) {
         despawn(player.serverLevel(), state);
-        final BlockPos pos = SpawnLocator.findSpawn(
-                player, random, config.entity.spawnDistanceMin, config.entity.spawnDistanceMax);
-        return pos != null && spawnAt(player, player.serverLevel(), state, pos);
+        BlockPos pos = SpawnLocator.findSpawn(player, random, 10, 25);
+        if (pos == null) {
+            // Fall back to the configured (far) range if nothing close is valid.
+            final HorrorConfig config = ConfigManager.get();
+            pos = SpawnLocator.findSpawn(player, random, config.entity.spawnDistanceMin, config.entity.spawnDistanceMax);
+        }
+        return (pos != null && spawnAt(player, player.serverLevel(), state, pos)) ? pos : null;
     }
 
     public static void despawn(ServerLevel level, PlayerHorrorState state) {

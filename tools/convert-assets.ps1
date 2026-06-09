@@ -62,8 +62,10 @@ foreach ($src in $imageMap.Keys) {
     $in = Join-Path $root $src
     if (-not (Test-Path $in)) { Write-Warning "missing image: $src (skipped)"; continue }
     $out = Join-Path $guiOut ($imageMap[$src] + ".png")
-    Write-Host "image  $src -> $($imageMap[$src]).png"
-    & ffmpeg -y -loglevel error -i $in $out
+    Write-Host "image  $src -> $($imageMap[$src]).png (1024x1024)"
+    # Normalise every jumpscare to a fixed 1024x1024 so the full-screen blit is deterministic
+    # (the GUI blit samples a fixed texture size; mismatched sizes would crop the image).
+    & ffmpeg -y -loglevel error -i $in -vf "scale=1024:1024" $out
 }
 
 # Optional: if the user drops their own stalker skins in the repo root, re-encode them into the

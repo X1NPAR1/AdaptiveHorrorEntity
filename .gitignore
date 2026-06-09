@@ -23,3 +23,7 @@ bin/
 # OS
 .DS_Store
 Thumbs.db
+
+# Dev run logs
+runclient.log
+runclient-exit.txt

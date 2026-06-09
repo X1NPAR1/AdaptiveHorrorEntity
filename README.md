@@ -69,7 +69,21 @@ Or use the helper:
 
 Pick the jar matching your loader. Ignore the `-sources.jar` and `-dev*.jar` files.
 
-## Testing in-game (operator commands)
+## The "null" presence & how a session unfolds
+
+1. Enter a world → accept the fullscreen disclaimer (once per world).
+2. The mod arms a timer. **5–10 minutes later, `null` "joins"**: a yellow `null sunucuya katıldı`
+   chat line, and a `null` entry appears in the tab list.
+3. Only *after* null joins does the haunting begin — the stalking entity (white by day, black with
+   glowing eyes by night) and every event are gated behind it.
+
+All in-game text is **Turkish**. The mod ships fully functional (not a demo); the operator commands
+below are for verification/showcasing, not a prerequisite.
+
+> Tab-list head colour for `null` uses the default skin unless you set
+> `nullEntity.textureValue`/`textureSignature` (a base64 skin property) in the config.
+
+## In-game operator commands
 
 All commands require permission level 2 (single-player: enable cheats). Base command
 `/adaptivehorror`, alias `/ahe`:
@@ -80,13 +94,14 @@ All commands require permission level 2 (single-player: enable cheats). Base com
 | `/ahe jumpscare [1-8]` | Trigger a full-screen jumpscare (random image if omitted) |
 | `/ahe event <id>` | Force-run a specific event (tab-completes: `sign`, `chat`, `fake_player`, `world_manipulation`, `global`, …) |
 | `/ahe sound <name>` | Play a registered sound (`scary_ambient`, `iseeyou`, `travel1`, …) |
-| `/ahe status` | Print your live AI state: day, intensity, vigilance, mining/camping scores, AFK, stalker presence |
+| `/ahe nulljoin` | Force `null` to join now (skip the 5–10 min wait), unlocking the haunting |
+| `/ahe status` | Print your live state: day, intensity, whether null joined, vigilance, AFK, active entity |
 | `/ahe day` | Print the in-game day and current intensity |
 | `/ahe disclaimer` | Re-show the disclaimer screen |
 | `/ahe reload` | Reload `config/adaptivehorror.json` from disk |
 
-Quick smoke test: join a world → accept the disclaimer → `/ahe spawn` (look around for the figure) →
-`/ahe jumpscare` → `/ahe event sign` → `/ahe status`.
+Quick smoke test: join a world → accept the disclaimer → `/ahe nulljoin` → `/ahe spawn` (it now
+spawns ~10–25 blocks away and prints the coordinates) → `/ahe jumpscare` → `/ahe event sign`.
 
 > **Version note:** `gradle.properties` pins the known-good 1.16.5 toolchain versions. If Gradle
 > fails to resolve a dependency, bump to the latest 1.16.5-compatible patch — the layout is stable.

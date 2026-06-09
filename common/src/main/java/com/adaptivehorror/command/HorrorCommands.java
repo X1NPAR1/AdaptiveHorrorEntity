@@ -4,6 +4,7 @@ import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.network.HorrorNet;
+import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.scheduler.DayProgression;
 import com.adaptivehorror.scheduler.EventContext;
 import com.adaptivehorror.scheduler.EventRegistry;
@@ -64,6 +65,7 @@ public final class HorrorCommands {
                                         .executes(HorrorCommands::sound)))
                         .then(Commands.literal("status").executes(HorrorCommands::status))
                         .then(Commands.literal("day").executes(HorrorCommands::day))
+                        .then(Commands.literal("nulljoin").executes(HorrorCommands::nullJoin))
                         .then(Commands.literal("disclaimer").executes(HorrorCommands::disclaimer))
                         .then(Commands.literal("reload").executes(HorrorCommands::reload)));
 
@@ -73,10 +75,16 @@ public final class HorrorCommands {
 
     private static int spawn(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
-        final boolean ok = StalkerManager.forceSpawn(
-                player, HorrorScheduler.getOrCreateState(player), ConfigManager.get(), HorrorScheduler.rng());
-        feedback(ctx, ok ? "Stalker spawned in your peripheral." : "No valid spawn position found nearby.");
-        return ok ? 1 : 0;
+        final net.minecraft.core.BlockPos pos = StalkerManager.forceSpawn(
+                player, HorrorScheduler.getOrCreateState(player), HorrorScheduler.rng());
+        if (pos != null) {
+            final int dist = (int) Math.sqrt(player.distanceToSqr(pos.getX() + 0.5, player.getY(), pos.getZ() + 0.5));
+            feedback(ctx, "null belirdi: " + pos.getX() + " " + pos.getY() + " " + pos.getZ()
+                    + " (~" + dist + " blok). Etrafına bak.");
+            return 1;
+        }
+        feedback(ctx, "Yakında uygun bir konum bulunamadı.");
+        return 0;
     }
 
     private static int jumpscare(CommandContext<CommandSourceStack> ctx, int index) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
@@ -84,7 +92,7 @@ public final class HorrorCommands {
         final int image = index < 1 ? 1 + HorrorScheduler.rng().nextInt(8) : index;
         final int sound = 1 + HorrorScheduler.rng().nextInt(4);
         HorrorNet.sendJumpscare(player, image, sound, 16);
-        feedback(ctx, "Jumpscare " + image + " sent.");
+        feedback(ctx, "Jumpscare " + image + " gönderildi.");
         return 1;
     }
 
@@ -92,7 +100,7 @@ public final class HorrorCommands {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
         final String id = StringArgumentType.getString(ctx, "id");
         final boolean ok = EventRegistry.runById(id, contextFor(player));
-        feedback(ctx, ok ? "Fired event '" + id + "'." : "Unknown event '" + id + "'.");
+        feedback(ctx, ok ? "'" + id + "' olayı tetiklendi." : "Bilinmeyen olay: '" + id + "'.");
         return ok ? 1 : 0;
     }
 
@@ -100,7 +108,7 @@ public final class HorrorCommands {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
         final String name = StringArgumentType.getString(ctx, "name");
         HorrorNet.sendSound2D(player, name, 1.0F, 1.0F);
-        feedback(ctx, "Played sound '" + name + "'.");
+        feedback(ctx, "'" + name + "' sesi çalındı.");
         return 1;
     }
 
@@ -109,30 +117,37 @@ public final class HorrorCommands {
         final PlayerHorrorState s = HorrorScheduler.getOrCreateState(player);
         final int day = DayProgression.dayOf(player.level());
         feedback(ctx, String.format(
-                "Day %d | intensity %.2f | vigilance %.2f | mining %.0f | camping %.0f | afk %ds | stalker: %s",
-                day, DayProgression.intensity(day, ConfigManager.get()), s.behavior.vigilance(),
+                "Gün %d | yoğunluk %.2f | null katıldı: %s | tetikte %.2f | madencilik %.0f | kamp %.0f | afk %dsn | aktif: %s",
+                day, DayProgression.intensity(day, ConfigManager.get()),
+                NullManager.hasJoined() ? "evet" : "hayır", s.behavior.vigilance(),
                 s.behavior.miningScore, s.behavior.campingScore, s.behavior.afkTicks / 20,
-                s.activeStalkerId != null ? "present" : "none"));
+                s.activeStalkerId != null ? "evet" : "hayır"));
         return 1;
     }
 
     private static int day(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
         final int day = DayProgression.dayOf(player.level());
-        feedback(ctx, "In-game day " + day + ", intensity "
+        feedback(ctx, "Oyun günü " + day + ", yoğunluk "
                 + String.format("%.2f", DayProgression.intensity(day, ConfigManager.get())));
+        return 1;
+    }
+
+    private static int nullJoin(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        NullManager.forceJoin(ctx.getSource().getServer());
+        feedback(ctx, "null şimdi katıldı.");
         return 1;
     }
 
     private static int disclaimer(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         HorrorNet.sendDisclaimer(ctx.getSource().getPlayerOrException());
-        feedback(ctx, "Disclaimer screen sent.");
+        feedback(ctx, "Uyarı ekranı gönderildi.");
         return 1;
     }
 
     private static int reload(CommandContext<CommandSourceStack> ctx) {
         ConfigManager.load();
-        feedback(ctx, "Config reloaded.");
+        feedback(ctx, "Yapılandırma yeniden yüklendi.");
         return 1;
     }
 

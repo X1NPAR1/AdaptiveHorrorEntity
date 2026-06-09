@@ -3,6 +3,7 @@ package com.adaptivehorror.neoforge;
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.Constants;
 import com.adaptivehorror.command.HorrorCommands;
+import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.NeoForgeNetworkHelper;
 import com.adaptivehorror.platform.NeoForgeRegistryHelper;
 import com.adaptivehorror.scheduler.HorrorScheduler;
@@ -13,7 +14,9 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 /**
  * NeoForge entrypoint. Wires the mod-bus registration events (content, attributes, payloads) to the
@@ -32,6 +35,16 @@ public final class AdaptiveHorrorNeoForge {
 
         // Game-bus: runtime hooks.
         NeoForge.EVENT_BUS.register(this);
+    }
+
+    @SubscribeEvent
+    public void onServerTick(ServerTickEvent.Post event) {
+        HorrorScheduler.tickServer(event.getServer());
+    }
+
+    @SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent event) {
+        NullManager.reset();
     }
 
     @SubscribeEvent

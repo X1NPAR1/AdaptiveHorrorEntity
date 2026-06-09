@@ -176,11 +176,16 @@ public final class ClientHorrorManager {
         }
     }
 
+    /** All jumpscare textures are normalised to this square size by the asset-conversion step. */
+    private static final int JUMPSCARE_TEX_SIZE = 1024;
+
     private void renderJumpscare(GuiGraphics graphics, int w, int h) {
         final float alpha = Math.min(1.0F, jumpscareTicks / (jumpscareMaxTicks * 0.25F + 1.0F));
         graphics.setColor(1.0F, 1.0F, 1.0F, alpha);
-        // Stretch the full texture across the whole screen (region == texSize -> samples 0..1).
-        graphics.blit(jumpscareTexture, 0, 0, w, h, 0.0F, 0.0F, 256, 256, 256, 256);
+        // Stretch the full texture across the whole screen. Region == the texture's real size, so the
+        // entire image is sampled (0..1) regardless of screen resolution.
+        graphics.blit(jumpscareTexture, 0, 0, w, h, 0.0F, 0.0F,
+                JUMPSCARE_TEX_SIZE, JUMPSCARE_TEX_SIZE, JUMPSCARE_TEX_SIZE, JUMPSCARE_TEX_SIZE);
         graphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 

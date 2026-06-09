@@ -24,6 +24,27 @@ public final class HorrorConfig {
     public final Scheduler scheduler = new Scheduler();
     public final Audio audio = new Audio();
     public final Intensity intensity = new Intensity();
+    public final Null nullEntity = new Null();
+
+    /**
+     * The "null" presence. After the player accepts the disclaimer, a randomised delay later a fake
+     * player named {@code null} silently "joins" (a yellow chat line + a tab-list entry). Only after
+     * that does the haunting begin - the stalking entity and all events are gated behind it.
+     */
+    public static final class Null {
+        public boolean enabled = true;
+        public String name = "null";
+        /** Delay bounds (seconds) after disclaimer acceptance before null joins. Default 5-10 min. */
+        public int joinDelayMinSeconds = 300;
+        public int joinDelayMaxSeconds = 600;
+        /**
+         * Optional skin for the tab-list head. {@code textureValue} is the base64 "textures" property
+         * value and {@code textureSignature} its signature (may be empty for unsigned). Leave blank to
+         * use the default skin. A black-headed skin makes the tab entry read as the entity.
+         */
+        public String textureValue = "";
+        public String textureSignature = "";
+    }
 
     /** Coarse on/off toggles per subsystem, as required by the design's configuration section. */
     public static final class Features {

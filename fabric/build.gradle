@@ -7,10 +7,6 @@ architectury {
     fabric()
 }
 
-loom {
-    accessWidenerPath = project(":common").loom.accessWidenerPath
-}
-
 configurations {
     common
     shadowCommon
@@ -40,7 +36,6 @@ shadowJar {
 }
 
 remapJar {
-    injectAccessWidener = true
     inputFile.set shadowJar.archiveFile
     dependsOn shadowJar
     archiveClassifier.set(null)

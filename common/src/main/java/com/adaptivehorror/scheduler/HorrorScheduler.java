@@ -6,8 +6,10 @@ import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.network.HorrorNet;
+import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.spawn.StalkerManager;
 import com.adaptivehorror.world.DisclaimerState;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -38,12 +40,20 @@ public final class HorrorScheduler {
     private HorrorScheduler() {
     }
 
-    /** Called on player login: shows the disclaimer if this world hasn't been accepted yet. */
+    /** Called once per server tick (before the per-player ticks). Advances the "null" presence. */
+    public static void tickServer(MinecraftServer server) {
+        if (ConfigManager.get().enabled) {
+            NullManager.tick(server);
+        }
+    }
+
+    /** Called on player login: shows the disclaimer if needed, and syncs the null tab entry. */
     public static void onPlayerJoin(ServerPlayer player) {
         final DisclaimerState disclaimer = DisclaimerState.get(player.serverLevel());
         if (!disclaimer.hasAccepted(player.getUUID())) {
             HorrorNet.sendDisclaimer(player);
         }
+        NullManager.syncTo(player);
     }
 
     public static void tickPlayer(ServerPlayer player) {
@@ -52,8 +62,12 @@ public final class HorrorScheduler {
             return;
         }
 
-        // Gate: no horror until the player has accepted the disclaimer in this world.
+        // Gate 1: no horror until the player has accepted the disclaimer in this world.
         if (!DisclaimerState.get(player.serverLevel()).hasAccepted(player.getUUID())) {
+            return;
+        }
+        // Gate 2: the haunting only begins once "null" has joined.
+        if (config.nullEntity.enabled && !NullManager.hasJoined()) {
             return;
         }
 

@@ -2,10 +2,6 @@ architectury {
     common(rootProject.enabled_platforms.split(","))
 }
 
-loom {
-    accessWidenerPath = file("src/main/resources/adaptivehorror.accesswidener")
-}
-
 // No annotation processors in common (we use a ServiceLoader abstraction, not @ExpectPlatform);
 // disable processing so Architectury's injectables AP cannot interfere.
 tasks.withType(JavaCompile).configureEach {
