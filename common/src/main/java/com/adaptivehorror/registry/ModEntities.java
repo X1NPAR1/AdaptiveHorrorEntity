@@ -27,7 +27,7 @@ public final class ModEntities {
                         .<StalkerEntity>of(StalkerEntity::new, MobCategory.MONSTER)
                         .sized(0.6F, 1.95F)
                         .clientTrackingRange(12)
-                        .updateInterval(3)
+                        .updateInterval(1) // sync every tick so the RUSH behaviour reads smoothly
                         .fireImmune()
                         .build("stalker"),
                 StalkerEntity::createAttributes);

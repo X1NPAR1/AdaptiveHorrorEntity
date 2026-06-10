@@ -2,6 +2,7 @@ package com.adaptivehorror.fabric;
 
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.command.HorrorCommands;
+import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.FabricNetworkHelper;
 import com.adaptivehorror.scheduler.HorrorScheduler;
@@ -29,7 +30,10 @@ public final class AdaptiveHorrorFabric implements ModInitializer {
             server.getPlayerList().getPlayers().forEach(HorrorScheduler::tickPlayer);
         });
 
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> NullManager.reset());
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            NullManager.reset();
+            MobLockManager.reset();
+        });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 HorrorScheduler.onPlayerJoin(handler.player));

@@ -5,6 +5,7 @@ import com.adaptivehorror.ai.BehaviorSampler;
 import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
+import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.spawn.StalkerManager;
@@ -40,10 +41,11 @@ public final class HorrorScheduler {
     private HorrorScheduler() {
     }
 
-    /** Called once per server tick (before the per-player ticks). Advances the "null" presence. */
+    /** Called once per server tick (before the per-player ticks). Drives server-global systems. */
     public static void tickServer(MinecraftServer server) {
         if (ConfigManager.get().enabled) {
             NullManager.tick(server);
+            MobLockManager.tick(server);
         }
     }
 

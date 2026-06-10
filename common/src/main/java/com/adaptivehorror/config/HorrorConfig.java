@@ -58,6 +58,7 @@ public final class HorrorConfig {
         public boolean fakePlayers = true;
         public boolean shadowEntities = true;
         public boolean globalEvents = true;
+        public boolean mobLock = true;
     }
 
     /** Core stalking entity tuning. */
@@ -71,9 +72,9 @@ public final class HorrorConfig {
         public int relocateTravelBlocks = 75;
         /** Chance (0-1) to apply status effects after a proximity despawn. */
         public double proximityEffectChance = 0.15;
-        /** Effect duration bounds, in seconds, randomised within the range. */
-        public int effectDurationSecondsMin = 5;
-        public int effectDurationSecondsMax = 12;
+        /** Effect duration bounds, in seconds, randomised within the range. Kept short and punchy. */
+        public int effectDurationSecondsMin = 2;
+        public int effectDurationSecondsMax = 5;
         /** Seconds of being AFK after which the entity may appear directly behind the player. */
         public int afkAppearSeconds = 180;
         /** Chance (0-1) per check to appear beside a sleeping player's bed. */
@@ -112,5 +113,20 @@ public final class HorrorConfig {
         public boolean dayProgressionEnabled = true;
         /** Day index at which the mod reaches maximum intensity; capped beyond this. */
         public int maxIntensityDay = 10;
+    }
+
+    public final MobLock mobLock = new MobLock();
+
+    /**
+     * The "everything stares" set-piece. On an interval, with a probability, every mob within a few
+     * chunks of any player freezes and turns to stare at the nearest player for a spell, while the
+     * chat fills with corrupted glyphs and {@code iseeyou} plays. Then everything snaps back to normal.
+     */
+    public static final class MobLock {
+        public int intervalSeconds = 300;   // check every 5 minutes
+        public double chance = 0.25;        // 25% per check
+        public int durationSeconds = 30;    // mobs stay locked for 30s
+        public int radiusChunks = 4;        // within 4 chunks (64 blocks) of any player
+        public int chatMessageCount = 40;   // corrupted messages spread across the lock
     }
 }

@@ -17,7 +17,7 @@ public final class StalkerRenderer extends MobRenderer<StalkerEntity, StalkerMod
 
     public StalkerRenderer(EntityRendererProvider.Context context) {
         super(context, new StalkerModel(context.bakeLayer(ModModelLayers.STALKER)), 0.0F);
-        addLayer(new StalkerEyesLayer(this));
+        // No glowing-eyes layer: the night form is meant to read as a pure, featureless black void.
     }
 
     @Override

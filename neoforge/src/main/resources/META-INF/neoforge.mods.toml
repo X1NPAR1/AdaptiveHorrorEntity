@@ -3,6 +3,9 @@ loaderVersion = "[4,)"
 license = "All Rights Reserved"
 issueTrackerURL = "https://github.com/X1NPAR1/AdaptiveHorrorEntity/issues"
 
+[[mixins]]
+config = "adaptivehorror.neoforge.mixins.json"
+
 [[mods]]
 modId = "adaptivehorror"
 version = "${version}"

@@ -3,6 +3,7 @@ package com.adaptivehorror.command;
 import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
+import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.scheduler.DayProgression;
@@ -66,6 +67,7 @@ public final class HorrorCommands {
                         .then(Commands.literal("status").executes(HorrorCommands::status))
                         .then(Commands.literal("day").executes(HorrorCommands::day))
                         .then(Commands.literal("nulljoin").executes(HorrorCommands::nullJoin))
+                        .then(Commands.literal("moblock").executes(HorrorCommands::mobLock))
                         .then(Commands.literal("disclaimer").executes(HorrorCommands::disclaimer))
                         .then(Commands.literal("reload").executes(HorrorCommands::reload)));
 
@@ -136,6 +138,12 @@ public final class HorrorCommands {
     private static int nullJoin(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         NullManager.forceJoin(ctx.getSource().getServer());
         feedback(ctx, "null şimdi katıldı.");
+        return 1;
+    }
+
+    private static int mobLock(CommandContext<CommandSourceStack> ctx) {
+        MobLockManager.forceStart(ctx.getSource().getServer());
+        feedback(ctx, "Kitlenme olayı başlatıldı.");
         return 1;
     }
 

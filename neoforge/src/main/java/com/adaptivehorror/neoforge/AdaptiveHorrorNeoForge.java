@@ -3,6 +3,7 @@ package com.adaptivehorror.neoforge;
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.Constants;
 import com.adaptivehorror.command.HorrorCommands;
+import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.NeoForgeNetworkHelper;
 import com.adaptivehorror.platform.NeoForgeRegistryHelper;
@@ -45,6 +46,7 @@ public final class AdaptiveHorrorNeoForge {
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
         NullManager.reset();
+        MobLockManager.reset();
     }
 
     @SubscribeEvent

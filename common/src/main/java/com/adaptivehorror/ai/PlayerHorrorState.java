@@ -20,6 +20,13 @@ public final class PlayerHorrorState {
     @Nullable
     public UUID activeStalkerId;
 
+    /** The behaviour archetype the active stalker committed to this encounter. */
+    @Nullable
+    public com.adaptivehorror.spawn.StalkerBehavior stalkerBehavior;
+
+    /** Ticks the active stalker has existed - used to time-out rushers/watchers. */
+    public int stalkerAgeTicks;
+
     /** Last sampled player position, for incremental horizontal-travel accounting. */
     @Nullable
     public Vec3 lastSampledPos;

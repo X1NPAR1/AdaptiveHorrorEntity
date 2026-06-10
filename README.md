@@ -95,6 +95,7 @@ All commands require permission level 2 (single-player: enable cheats). Base com
 | `/ahe event <id>` | Force-run a specific event (tab-completes: `sign`, `chat`, `fake_player`, `world_manipulation`, `global`, …) |
 | `/ahe sound <name>` | Play a registered sound (`scary_ambient`, `iseeyou`, `travel1`, …) |
 | `/ahe nulljoin` | Force `null` to join now (skip the 5–10 min wait), unlocking the haunting |
+| `/ahe moblock` | Force the "everything stares" lock event right now |
 | `/ahe status` | Print your live state: day, intensity, whether null joined, vigilance, AFK, active entity |
 | `/ahe day` | Print the in-game day and current intensity |
 | `/ahe disclaimer` | Re-show the disclaimer screen |

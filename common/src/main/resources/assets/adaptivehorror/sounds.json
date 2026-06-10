@@ -1,16 +1,16 @@
 {
   "iseeyou": {
     "category": "ambient",
-    "sounds": [ { "name": "adaptivehorror:iseeyou", "stream": true } ]
+    "sounds": [ { "name": "adaptivehorror:iseeyou", "stream": false } ]
   },
   "scary_ambient": {
     "category": "ambient",
-    "sounds": [ { "name": "adaptivehorror:scary_ambient", "stream": true } ]
+    "sounds": [ { "name": "adaptivehorror:scary_ambient", "stream": false } ]
   },
-  "jumpscare1": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare1", "stream": true } ] },
-  "jumpscare2": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare2", "stream": true } ] },
-  "jumpscare3": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare3", "stream": true } ] },
-  "jumpscare4": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare4", "stream": true } ] },
-  "travel1": { "category": "master", "sounds": [ { "name": "adaptivehorror:travel1", "stream": true } ] },
-  "travel2": { "category": "master", "sounds": [ { "name": "adaptivehorror:travel2", "stream": true } ] }
+  "jumpscare1": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare1", "stream": false } ] },
+  "jumpscare2": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare2", "stream": false } ] },
+  "jumpscare3": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare3", "stream": false } ] },
+  "jumpscare4": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare4", "stream": false } ] },
+  "travel1": { "category": "master", "sounds": [ { "name": "adaptivehorror:travel1", "stream": false } ] },
+  "travel2": { "category": "master", "sounds": [ { "name": "adaptivehorror:travel2", "stream": false } ] }
 }
