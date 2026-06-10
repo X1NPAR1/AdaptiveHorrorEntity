@@ -71,10 +71,16 @@ public final class WatcherManager {
         if (state.watcherTargetCount == 0) {
             state.watcherTargetCount = cfg.minCount + random.nextInt(Math.max(1, cfg.maxCount - cfg.minCount + 1));
         }
+        // Night surge (#5): after dark or underground, force an overwhelming ring and form it fast.
+        final boolean surge = underground || !level.isDay();
+        if (surge && state.watcherTargetCount < cfg.nightMinCount) {
+            state.watcherTargetCount = cfg.nightMinCount;
+        }
         final long now = level.getGameTime();
+        final long spawnGap = surge ? 10L : 20L; // up to ~2 nulls/sec during the surge
         if (state.watcherIds.size() < state.watcherTargetCount && now >= state.nextWatcherSpawnTick) {
-            state.nextWatcherSpawnTick = now + 20L; // at most one new watcher per second
-            spawnWatcher(player, level, state, cfg, random);
+            state.nextWatcherSpawnTick = now + spawnGap;
+            spawnWatcher(player, level, state, cfg, surge, random);
         }
     }
 
@@ -94,13 +100,16 @@ public final class WatcherManager {
     }
 
     private static void spawnWatcher(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
-                                     HorrorConfig.Watchers cfg, Random random) {
+                                     HorrorConfig.Watchers cfg, boolean surge, Random random) {
         // Underground, the watchers gather in the caves around you (at your level); on the surface,
-        // they stand far off. Never on the distant surface while you're deep underground.
+        // they stand far off. Never on the distant surface while you're deep underground. During the
+        // night surge they close in to the tighter night band so the ring feels like it surrounds you.
         final boolean underground = com.adaptivehorror.util.Locations.isUnderground(player);
+        final int distMin = surge ? cfg.nightDistanceMin : cfg.distanceMin;
+        final int distMax = surge ? cfg.nightDistanceMax : cfg.distanceMax;
         final BlockPos pos = underground
                 ? SpawnLocator.findUnderground(player, random, 16, 64)
-                : SpawnLocator.findSpawn(player, random, cfg.distanceMin, cfg.distanceMax);
+                : SpawnLocator.findSpawn(player, random, distMin, distMax);
         if (pos == null) {
             return; // no valid (loaded) spot this tick; try again later
         }

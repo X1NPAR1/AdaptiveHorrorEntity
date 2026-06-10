@@ -171,6 +171,16 @@ public final class HorrorConfig {
         public int distanceMax = 200;
         public int vanishRadius = 25;       // vanish (or strike) once the player is this close
         // (Strike chance follows the shared day-scaled AdaptiveAI curve, like the main stalker.)
+
+        /**
+         * Night surge: after dark (or underground) from {@code startDay} on, the watchers swell into an
+         * overwhelming ring. The headcount floors at {@code nightMinCount}, they gather closer
+         * ({@code nightDistanceMin}-{@code nightDistanceMax}) and form faster - this is the day-5+
+         * "5-6 nulls at once" pressure.
+         */
+        public int nightMinCount = 5;
+        public int nightDistanceMin = 26;   // just outside the 25-block vanish radius
+        public int nightDistanceMax = 70;
     }
 
     public final InventoryDrop inventoryDrop = new InventoryDrop();

@@ -52,6 +52,7 @@ public final class AdaptiveHorrorNeoForge {
         NullManager.reset();
         MobLockManager.reset();
         AssaultManager.reset();
+        com.adaptivehorror.event.TargetingManager.reset();
     }
 
     @SubscribeEvent

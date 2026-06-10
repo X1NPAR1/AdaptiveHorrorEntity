@@ -39,6 +39,7 @@ public final class AdaptiveHorrorFabric implements ModInitializer {
             NullManager.reset();
             MobLockManager.reset();
             AssaultManager.reset();
+            com.adaptivehorror.event.TargetingManager.reset();
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->

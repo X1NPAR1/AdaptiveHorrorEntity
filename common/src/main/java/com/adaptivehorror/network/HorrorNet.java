@@ -4,6 +4,7 @@ import com.adaptivehorror.Constants;
 import com.adaptivehorror.platform.Services;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
@@ -108,6 +109,49 @@ public final class HorrorNet {
         b.writeVarInt(durationTicks);
         b.writeFloat(intensity);
         Services.NETWORK.sendFx(player, b);
+    }
+
+    // --- broadcast senders (shared, multiplayer set-pieces) ------------------------------------
+
+    /**
+     * Server-wide variants used by the "major events affect everyone" beats. A single null appearing
+     * is personal; a death, a global blackout, or a collective jumpscare is felt by the whole server.
+     * Each loops the online players and reuses the per-player sender (buffers are consumed per send).
+     */
+    public static void broadcastJumpscare(MinecraftServer server, int imageIndex, int soundIndex, int durationTicks) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            sendJumpscare(player, imageIndex, soundIndex, durationTicks);
+        }
+    }
+
+    public static void broadcastSound2D(MinecraftServer server, String soundPath, float volume, float pitch) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            sendSound2D(player, soundPath, volume, pitch);
+        }
+    }
+
+    public static void broadcastVignettePulse(MinecraftServer server, int durationTicks) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            sendVignettePulse(player, durationTicks);
+        }
+    }
+
+    /** Like {@link #broadcastSound2D} but skips one player - "someone else was taken". */
+    public static void broadcastSound2DExcept(MinecraftServer server, ServerPlayer except,
+                                              String soundPath, float volume, float pitch) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player != except) {
+                sendSound2D(player, soundPath, volume, pitch);
+            }
+        }
+    }
+
+    public static void broadcastVignettePulseExcept(MinecraftServer server, ServerPlayer except, int durationTicks) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player != except) {
+                sendVignettePulse(player, durationTicks);
+            }
+        }
     }
 
     // --- C2S (client -> server control) --------------------------------------------------------

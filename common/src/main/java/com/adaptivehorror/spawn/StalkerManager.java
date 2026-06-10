@@ -56,6 +56,12 @@ public final class StalkerManager {
         if (state.pendingKillTick != 0L && now >= state.pendingKillTick) {
             state.pendingKillTick = 0L;
             player.hurt(player.damageSources().genericKill(), Float.MAX_VALUE);
+            // A death is shared: the rest of the server feels it - a distant whisper and a blood pulse.
+            final net.minecraft.server.MinecraftServer server = player.getServer();
+            if (server != null) {
+                HorrorNet.broadcastSound2DExcept(server, player, "iseeyou", 0.6F, 0.8F);
+                HorrorNet.broadcastVignettePulseExcept(server, player, 30);
+            }
         }
 
         accountTravel(player, state);

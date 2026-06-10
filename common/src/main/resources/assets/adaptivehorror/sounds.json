@@ -9,7 +9,7 @@
   },
   "background": {
     "category": "ambient",
-    "sounds": [ { "name": "adaptivehorror:background", "stream": false } ]
+    "sounds": [ { "name": "adaptivehorror:background", "stream": true } ]
   },
   "jumpscare1": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare1", "stream": false } ] },
   "jumpscare2": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare2", "stream": false } ] },

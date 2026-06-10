@@ -3,7 +3,11 @@ package com.adaptivehorror.events;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.scheduler.EventContext;
 import com.adaptivehorror.scheduler.HorrorEvent;
+import com.adaptivehorror.scheduler.ScheduledAction;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.SkullBlock;
@@ -41,7 +45,7 @@ public final class WorldManipulationEvent implements HorrorEvent {
 
     @Override
     public void execute(EventContext ctx) {
-        switch (ctx.random.nextInt(4)) {
+        switch (ctx.random.nextInt(5)) {
             case 0 -> {
                 if (!toggleNearestDoor(ctx)) {
                     breakRandomBlock(ctx);
@@ -53,32 +57,71 @@ public final class WorldManipulationEvent implements HorrorEvent {
                     breakRandomBlock(ctx);
                 }
             }
+            case 3 -> {
+                if (!hauntDoorLoop(ctx)) { // the door that won't stop swinging
+                    breakRandomBlock(ctx);
+                }
+            }
             default -> placeSkull(ctx);
         }
     }
 
     private static boolean toggleNearestDoor(EventContext ctx) {
+        final BlockPos door = findNearestDoor(ctx);
+        if (door == null) {
+            return false;
+        }
+        toggleDoorAt(ctx.level, door);
+        return true;
+    }
+
+    /**
+     * The cinematic beat: a nearby door swings open and shut on its own, 2-4 times, each swing a beat
+     * apart with its real creak. Built from per-player {@link ScheduledAction}s so it plays out over a
+     * few seconds instead of all at once, and each step re-reads the door (so it no-ops if it's gone).
+     */
+    private static boolean hauntDoorLoop(EventContext ctx) {
+        final BlockPos door = findNearestDoor(ctx);
+        if (door == null) {
+            return false;
+        }
+        final ServerLevel level = ctx.level;
+        final int swings = 2 + ctx.random.nextInt(3); // 2-4 swings
+        long delay = 0L;
+        for (int i = 0; i < swings; i++) {
+            delay += 8L + ctx.random.nextInt(9); // ~0.4-0.85s between swings
+            final long fire = level.getGameTime() + delay;
+            ctx.state.scheduled.add(new ScheduledAction(fire, () -> toggleDoorAt(level, door)));
+        }
+        return true;
+    }
+
+    private static BlockPos findNearestDoor(EventContext ctx) {
         final BlockPos origin = ctx.player.blockPosition();
         BlockPos nearest = null;
         double nearestSq = Double.MAX_VALUE;
-        BlockState nearestState = null;
         for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-RADIUS, -3, -RADIUS),
                 origin.offset(RADIUS, 3, RADIUS))) {
-            final BlockState state = ctx.level.getBlockState(pos);
-            if (state.getBlock() instanceof DoorBlock) {
+            if (ctx.level.getBlockState(pos).getBlock() instanceof DoorBlock) {
                 final double d = pos.distSqr(origin);
                 if (d < nearestSq) {
                     nearestSq = d;
                     nearest = pos.immutable();
-                    nearestState = state;
                 }
             }
         }
-        if (nearest == null) {
-            return false;
+        return nearest;
+    }
+
+    private static void toggleDoorAt(ServerLevel level, BlockPos pos) {
+        final BlockState state = level.getBlockState(pos);
+        if (!(state.getBlock() instanceof DoorBlock)) {
+            return; // the door was removed between swings - just stop
         }
-        ctx.level.setBlock(nearest, nearestState.setValue(DoorBlock.OPEN, !nearestState.getValue(DoorBlock.OPEN)), 10);
-        return true;
+        final boolean willOpen = !state.getValue(DoorBlock.OPEN);
+        level.setBlock(pos, state.setValue(DoorBlock.OPEN, willOpen), 10);
+        level.playSound(null, pos, willOpen ? SoundEvents.WOODEN_DOOR_OPEN : SoundEvents.WOODEN_DOOR_CLOSE,
+                SoundSource.BLOCKS, 1.0F, 1.0F);
     }
 
     private static boolean snuffNearestTorch(EventContext ctx) {
