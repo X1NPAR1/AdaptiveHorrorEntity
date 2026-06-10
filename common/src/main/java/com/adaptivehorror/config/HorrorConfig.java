@@ -69,11 +69,13 @@ public final class HorrorConfig {
 
     /** Core stalking entity tuning. */
     public static final class Entity {
-        /** Minimum / maximum spawn distance from the player, in blocks. */
-        public int spawnDistanceMin = 50;
-        public int spawnDistanceMax = 150;
+        /** Far spawn distance bounds from the player, in blocks (the "far" placement). */
+        public int spawnDistanceMin = 75;
+        public int spawnDistanceMax = 175;
         /** When a jumpscare "attack" happens, the chance (0-1) it actually kills (else just scares). */
         public double jumpscareKillChance = 0.20;
+        /** When the stalker is triggered (looked at / approached), chance it attacks instead of vanishing. */
+        public double stalkerAttackChance = 0.05;
         /** Player approaches within this radius -> entity instantly despawns. */
         public int despawnTriggerRadius = 25;
         /** Player travels this far -> current entity despawns and re-spawns elsewhere. */

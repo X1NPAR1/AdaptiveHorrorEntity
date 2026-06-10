@@ -123,7 +123,10 @@ intensity, debug mode) lives there — there are no hardcoded timers in the logi
 
 - **Stalker archetypes** (rolled per spawn): EFFECT 47% (lightning + hex + sting, then vanish),
   VANISH 25%, WATCH 25% (spawns close behind), RUSH **3%** (the only lethal routine).
-- The single stalker spawns **50-150 blocks** out and watches.
+- The single stalker spawns **contextually**: directly **behind** you (vanishes when you look at
+  it), **75-175 blocks** off (vanishes when you come within 25), at your **window** when you're
+  sheltered at night, or right **in front of you while you sleep** (10%, gone when you wake). On
+  trigger it's **95% just vanish, 5% strike**. White by day, black by night.
 - **The many eyes** (after the 5th night): 3-8 extra nulls stand **50-200 blocks** off and stare.
   They're 95% peaceful (vanish if you come within 25 blocks); 5% strike with a jumpscare.
 - **The enderman rule** (any form): stare at it for 2s → it teleports right in front of you, plays a
