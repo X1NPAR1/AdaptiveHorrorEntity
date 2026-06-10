@@ -66,10 +66,10 @@ public final class HorrorConfig {
         public boolean globalEvents = true;
         public boolean mobLock = true;
         public boolean mobDeathHorror = true;
-        /** When one player is jumpscared by the stalker, every player sees the jumpscare. */
-        public boolean sharedJumpscare = true;
-        /** When the stalker kills one player, every player dies with them. */
-        public boolean sharedDeath = true;
+        /** When one player is jumpscared by the stalker, every player sees the jumpscare. Off: per-player. */
+        public boolean sharedJumpscare = false;
+        /** When the stalker kills one player, every player dies with them. Off: per-player. */
+        public boolean sharedDeath = false;
     }
 
     /** Chance (0-1) that killing a mob births a black null from the corpse. */

@@ -7,7 +7,13 @@ import com.adaptivehorror.events.FakeJoinEvent;
 import com.adaptivehorror.events.FakePlayerEvent;
 import com.adaptivehorror.events.AimLockEvent;
 import com.adaptivehorror.events.BloodScreenEvent;
+import com.adaptivehorror.events.BreathFogEvent;
 import com.adaptivehorror.events.CirclingFootstepsEvent;
+import com.adaptivehorror.events.FootstepsAboveEvent;
+import com.adaptivehorror.events.InventoryShuffleEvent;
+import com.adaptivehorror.events.OminousItemEvent;
+import com.adaptivehorror.events.PhantomArrowEvent;
+import com.adaptivehorror.events.PhantomBiteEvent;
 import com.adaptivehorror.events.ColdPresenceEvent;
 import com.adaptivehorror.events.CreepingDarknessEvent;
 import com.adaptivehorror.events.DistantScreamEvent;
@@ -84,6 +90,12 @@ public final class EventRegistry {
         register(new PhantomExplosionEvent());  // day 5+ (a blast in the distance)
         register(new TrappedFeelingEvent());    // day 6+ (you can't leave)
         register(new UnseenHunterEvent());      // day 7+ (something is hunting you)
+        register(new FootstepsAboveEvent());    // day 2+ (walking on the ceiling)
+        register(new PhantomArrowEvent());      // day 3+ (a shot from the dark)
+        register(new BreathFogEvent());         // day 3+ (cold breath in front of you)
+        register(new OminousItemEvent());       // day 4+ (a token left at your feet)
+        register(new InventoryShuffleEvent());  // day 5+ (your items moved)
+        register(new PhantomBiteEvent());       // day 6+ (something snapped at you)
     }
 
     private EventRegistry() {

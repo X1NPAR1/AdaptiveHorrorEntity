@@ -46,6 +46,8 @@ public final class StalkerManager {
     private static final int RESPAWN_MIN_SECONDS = 15;
     private static final int RESPAWN_MAX_SECONDS = 60;
     private static final double FOLLOW_DISTANCE = 200.0;    // wander this far -> it relocates near you
+    /** The far watcher may never spawn this many blocks above/below the player (anti surface-spawn). */
+    private static final int VERTICAL_SPAWN_LIMIT = 40;
 
     private StalkerManager() {
     }
@@ -60,7 +62,7 @@ public final class StalkerManager {
             final net.minecraft.server.MinecraftServer server = player.getServer();
             final HorrorConfig cfg = ConfigManager.get();
             if (server != null) {
-                final int img = 1 + random.nextInt(8);
+                final int img = com.adaptivehorror.util.Jumpscares.randomImage(random);
                 final int snd = 1 + random.nextInt(4);
                 for (ServerPlayer other : server.getPlayerList().getPlayers()) {
                     if (other == player) {
@@ -181,7 +183,7 @@ public final class StalkerManager {
      * (20%) of the time. Used by the stalker reaction and the watcher group.
      */
     public static void jumpscareAttack(ServerPlayer player, PlayerHorrorState state, Random random) {
-        final int img = 1 + random.nextInt(8);
+        final int img = com.adaptivehorror.util.Jumpscares.randomImage(random);
         final int snd = 1 + random.nextInt(4);
         HorrorNet.sendJumpscare(player, img, snd, 14);
         // Shared jumpscare: the rest of the server sees the same scare at the same instant.
@@ -233,7 +235,7 @@ public final class StalkerManager {
             final boolean white = state.stalkerBehavior == StalkerBehavior.FAR
                     && !state.stalkerBlack && player.level().isDay();
             if (white && random.nextDouble() < config.entity.whiteVanishJumpscareChance) {
-                HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 12);
+                HorrorNet.sendJumpscare(player, com.adaptivehorror.util.Jumpscares.randomImage(random), 1 + random.nextInt(4), 12);
             } else if (random.nextDouble() < config.entity.vanishWhisperChance) {
                 HorrorNet.sendSound2D(player, "iseeyou", 0.8F, 1.0F);
             }
@@ -280,7 +282,7 @@ public final class StalkerManager {
     }
 
     private static void caveRushHit(ServerPlayer player, PlayerHorrorState state, Random random) {
-        HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 14);
+        HorrorNet.sendJumpscare(player, com.adaptivehorror.util.Jumpscares.randomImage(random), 1 + random.nextInt(4), 14);
         if (random.nextDouble() < 0.08) {      // kills AFTER the jumpscare, ~5-10% of the time
             state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
         }
@@ -344,6 +346,11 @@ public final class StalkerManager {
         final BlockPos far = SpawnLocator.findSpawnClear(player, random,
                 config.entity.spawnDistanceMin, config.entity.spawnDistanceMax, config.entity.despawnTriggerRadius);
         if (far == null) {
+            return;
+        }
+        // Safety net: never place the far watcher wildly above/below the player (e.g. a surface heightmap
+        // spot while the player is deep underground). If it is, skip this cycle and try again later.
+        if (Math.abs(far.getY() - player.getY()) > VERTICAL_SPAWN_LIMIT) {
             return;
         }
         // Day 1-2: never a daytime black null. From day 3 the chance grows each day up to the cap.

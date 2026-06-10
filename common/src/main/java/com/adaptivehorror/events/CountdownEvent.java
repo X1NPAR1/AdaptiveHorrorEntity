@@ -42,6 +42,6 @@ public final class CountdownEvent implements HorrorEvent {
         ctx.state.scheduled.add(new ScheduledAction(now + 20L, () -> ChatMessageEvent.sendNullChat(player, Component.literal("2"))));
         ctx.state.scheduled.add(new ScheduledAction(now + 40L, () -> ChatMessageEvent.sendNullChat(player, Component.literal("1"))));
         ctx.state.scheduled.add(new ScheduledAction(now + 58L,
-                () -> HorrorNet.sendJumpscare(player, 1 + ctx.random.nextInt(8), 1 + ctx.random.nextInt(4), 16)));
+                () -> HorrorNet.sendJumpscare(player, com.adaptivehorror.util.Jumpscares.randomImage(ctx.random), 1 + ctx.random.nextInt(4), 16)));
     }
 }

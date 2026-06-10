@@ -138,7 +138,7 @@ public final class AssaultManager {
     private static void checkDeaths(MinecraftServer server) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!player.isAlive() && deadHandled.add(player.getUUID())) {
-                HorrorNet.sendJumpscare(player, 1 + RNG.nextInt(8), 1 + RNG.nextInt(4), 16);
+                HorrorNet.sendJumpscare(player, com.adaptivehorror.util.Jumpscares.randomImage(RNG), 1 + RNG.nextInt(4), 16);
             } else if (player.isAlive()) {
                 deadHandled.remove(player.getUUID());
             }

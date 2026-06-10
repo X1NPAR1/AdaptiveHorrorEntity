@@ -107,7 +107,7 @@ public final class AimLockEvent implements HorrorEvent {
 
         // The finale: jumpscare and the apparition vanishes.
         ctx.state.scheduled.add(new ScheduledAction(start + lockTicks, () -> {
-            HorrorNet.sendJumpscare(ctx.player, 1 + ctx.random.nextInt(8), 1 + ctx.random.nextInt(4), 16);
+            HorrorNet.sendJumpscare(ctx.player, com.adaptivehorror.util.Jumpscares.randomImage(ctx.random), 1 + ctx.random.nextInt(4), 16);
             final Entity e = level.getEntity(apparitionId);
             if (e != null) {
                 e.discard();

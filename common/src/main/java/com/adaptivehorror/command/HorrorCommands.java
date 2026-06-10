@@ -55,7 +55,7 @@ public final class HorrorCommands {
                         .then(Commands.literal("spawn").executes(HorrorCommands::spawn))
                         .then(Commands.literal("jumpscare")
                                 .executes(ctx -> jumpscare(ctx, -1))
-                                .then(Commands.argument("index", IntegerArgumentType.integer(1, 8))
+                                .then(Commands.argument("index", IntegerArgumentType.integer(1, 12))
                                         .executes(ctx -> jumpscare(ctx, IntegerArgumentType.getInteger(ctx, "index")))))
                         .then(Commands.literal("event")
                                 .then(Commands.argument("id", StringArgumentType.word())
@@ -95,7 +95,11 @@ public final class HorrorCommands {
 
     private static int jumpscare(CommandContext<CommandSourceStack> ctx, int index) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
-        final int image = index < 1 ? 1 + HorrorScheduler.rng().nextInt(8) : index;
+        int image = index < 1 ? com.adaptivehorror.util.Jumpscares.randomImage(HorrorScheduler.rng()) : index;
+        if (!com.adaptivehorror.util.Jumpscares.isValid(image)) {
+            feedback(ctx, "Geçersiz jumpscare " + image + " (jumpscare9 yok). Geçerli: 1-8, 10-12.");
+            return 0;
+        }
         final int sound = 1 + HorrorScheduler.rng().nextInt(4);
         HorrorNet.sendJumpscare(player, image, sound, 16);
         feedback(ctx, "Jumpscare " + image + " gönderildi.");
