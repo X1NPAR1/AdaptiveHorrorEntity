@@ -34,7 +34,9 @@ public final class HorrorNet {
         MUSIC_DISTORT,
         SHADOW_GHOST,
         SHOW_DISCLAIMER,
-        CAMERA_SHAKE
+        CAMERA_SHAKE,
+        FORCE_LOOK,
+        AIM_LOCK
     }
 
     private static FriendlyByteBuf buf(FxType type) {
@@ -108,6 +110,28 @@ public final class HorrorNet {
         final FriendlyByteBuf b = buf(FxType.CAMERA_SHAKE);
         b.writeVarInt(durationTicks);
         b.writeFloat(intensity);
+        Services.NETWORK.sendFx(player, b);
+    }
+
+    /**
+     * Forced-look (#16): for {@code durationTicks} the client wrenches the view to a succession of
+     * disorienting directions with shake. Strictly timer-bounded on the client, so control always
+     * returns - it can never permanently break the camera.
+     */
+    public static void sendForcedLook(ServerPlayer player, int durationTicks, float intensity) {
+        final FriendlyByteBuf b = buf(FxType.FORCE_LOOK);
+        b.writeVarInt(durationTicks);
+        b.writeFloat(intensity);
+        Services.NETWORK.sendFx(player, b);
+    }
+
+    /**
+     * Aim-lock (#17): for {@code durationTicks} the client drags the view to centre on the nearest
+     * null. Also timer-bounded; the player can fight it but regains full control when it ends.
+     */
+    public static void sendAimLock(ServerPlayer player, int durationTicks) {
+        final FriendlyByteBuf b = buf(FxType.AIM_LOCK);
+        b.writeVarInt(durationTicks);
         Services.NETWORK.sendFx(player, b);
     }
 

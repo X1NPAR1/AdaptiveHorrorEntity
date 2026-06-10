@@ -71,6 +71,15 @@ public final class ClientFxHandler {
                 mgr.startShake(duration, intensity);
                 break;
             }
+            case FORCE_LOOK: {
+                final int duration = data.readVarInt();
+                final float intensity = data.readFloat();
+                mgr.startForcedLook(duration, intensity);
+                break;
+            }
+            case AIM_LOCK:
+                mgr.startAimLock(data.readVarInt());
+                break;
         }
     }
 }

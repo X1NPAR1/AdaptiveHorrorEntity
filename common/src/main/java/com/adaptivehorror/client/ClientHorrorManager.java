@@ -1,6 +1,7 @@
 package com.adaptivehorror.client;
 
 import com.adaptivehorror.Constants;
+import com.adaptivehorror.entity.StalkerEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -8,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 
@@ -47,6 +49,21 @@ public final class ClientHorrorManager {
     private int shakeTicks;
     private int shakeMaxTicks;
     private float shakeIntensity;
+
+    // Forced-look (#16): scripted view-wrenching toward changing random directions.
+    private int forceLookTicks;
+    private float forceTargetYaw;
+    private float forceTargetPitch;
+    private int forceRetargetIn;
+
+    // Aim-lock (#17): the view is dragged to centre on the nearest null for a spell.
+    private int aimLockTicks;
+
+    /** Max degrees the locked/forced view may slew per tick - the player can still fight it a little. */
+    private static final float FORCE_SLEW = 16.0F;
+    private static final float AIM_SLEW = 22.0F;
+    /** Only ever lock onto a null within this range; beyond it the lock simply does nothing. */
+    private static final double AIM_RANGE = 220.0;
 
     // Window torment (10% of jumpscares) and the rare crash (1%).
     private boolean pendingCrash;
@@ -133,6 +150,18 @@ public final class ClientHorrorManager {
         return shakeTicks > 0;
     }
 
+    /** Begin the forced-look beat (#16): wrench the view around, paired with shake, for {@code ticks}. */
+    public void startForcedLook(int ticks, float intensity) {
+        this.forceLookTicks = Math.max(this.forceLookTicks, ticks);
+        this.forceRetargetIn = 0; // pick a direction immediately
+        startShake(ticks, Math.max(0.7F, intensity));
+    }
+
+    /** Begin the aim-lock beat (#17): drag the view onto the nearest null for {@code ticks}. */
+    public void startAimLock(int ticks) {
+        this.aimLockTicks = Math.max(this.aimLockTicks, ticks);
+    }
+
     private float shakeMagnitude() {
         return shakeIntensity * (shakeTicks / (float) shakeMaxTicks);
     }
@@ -188,6 +217,16 @@ public final class ClientHorrorManager {
                 shakeIntensity = 0.0F;
             }
         }
+        // Forced view control. Always decremented so it self-expires even if the player is gone -
+        // control can never be left permanently overridden.
+        if (forceLookTicks > 0) {
+            tickForcedLook();
+            forceLookTicks--;
+        }
+        if (aimLockTicks > 0) {
+            tickAimLock();
+            aimLockTicks--;
+        }
         if (pendingCrash) {
             pendingCrash = false;
             crashGame();
@@ -195,6 +234,68 @@ public final class ClientHorrorManager {
         if (windowFxTicks > 0) {
             tickWindowTorment();
         }
+    }
+
+    // --- forced view control (#16 forced look, #17 aim-lock) -----------------------------------
+
+    private void tickForcedLook() {
+        if (mc.player == null) {
+            return;
+        }
+        if (forceRetargetIn-- <= 0) {
+            // A fresh, disorienting direction: a big yaw swing and a wild up/down pitch.
+            forceTargetYaw = mc.player.getYRot() + (random.nextFloat() - 0.5F) * 260.0F;
+            forceTargetPitch = (random.nextFloat() - 0.5F) * 120.0F;
+            forceRetargetIn = 6 + random.nextInt(10); // hold each target ~0.3-0.8s
+        }
+        slewView(forceTargetYaw, forceTargetPitch, FORCE_SLEW);
+    }
+
+    private void tickAimLock() {
+        if (mc.player == null) {
+            return;
+        }
+        final StalkerEntity target = nearestStalker();
+        if (target == null) {
+            return; // nothing to lock onto - the lock simply does nothing this tick
+        }
+        final Vec3 eye = mc.player.getEyePosition();
+        final Vec3 to = target.position().add(0, target.getBbHeight() * 0.5, 0).subtract(eye);
+        final double horiz = Math.sqrt(to.x * to.x + to.z * to.z);
+        final float yaw = (float) Math.toDegrees(Math.atan2(-to.x, to.z));
+        final float pitch = (float) (-Math.toDegrees(Math.atan2(to.y, horiz)));
+        slewView(yaw, pitch, AIM_SLEW);
+    }
+
+    /** Rotate the player's view toward a target, capped per tick so it pulls rather than teleports. */
+    private void slewView(float targetYaw, float targetPitch, float maxStep) {
+        final float curYaw = mc.player.getYRot();
+        final float curPitch = mc.player.getXRot();
+        final float dYaw = Mth.clamp(Mth.wrapDegrees(targetYaw - curYaw), -maxStep, maxStep);
+        final float dPitch = Mth.clamp(Mth.wrapDegrees(targetPitch - curPitch), -maxStep, maxStep);
+        final float newYaw = curYaw + dYaw;
+        final float newPitch = Mth.clamp(curPitch + dPitch, -90.0F, 90.0F);
+        mc.player.setYRot(newYaw);
+        mc.player.setXRot(newPitch);
+        mc.player.setYHeadRot(newYaw);
+    }
+
+    private StalkerEntity nearestStalker() {
+        if (mc.level == null || mc.player == null) {
+            return null;
+        }
+        StalkerEntity best = null;
+        double bestSq = AIM_RANGE * AIM_RANGE;
+        for (var entity : mc.level.entitiesForRendering()) {
+            if (entity instanceof StalkerEntity stalker) {
+                final double d = mc.player.distanceToSqr(stalker);
+                if (d < bestSq) {
+                    bestSq = d;
+                    best = stalker;
+                }
+            }
+        }
+        return best;
     }
 
     // --- window torment / crash ----------------------------------------------------------------

@@ -5,7 +5,9 @@ import com.adaptivehorror.events.ChatMessageEvent;
 import com.adaptivehorror.events.CountdownEvent;
 import com.adaptivehorror.events.FakeJoinEvent;
 import com.adaptivehorror.events.FakePlayerEvent;
+import com.adaptivehorror.events.AimLockEvent;
 import com.adaptivehorror.events.FootstepStalkEvent;
+import com.adaptivehorror.events.ForcedLookEvent;
 import com.adaptivehorror.events.GlobalEvent;
 import com.adaptivehorror.events.JumpscareEvent;
 import com.adaptivehorror.events.MusicDistortEvent;
@@ -46,6 +48,8 @@ public final class EventRegistry {
         register(new FakePlayerEvent());        // day 4+
         register(new WorldManipulationEvent()); // day 3+ (door / block / torch / skull)
         register(new CountdownEvent());         // day 5+ (3..2..1.. jumpscare)
+        register(new ForcedLookEvent());        // day 4+ (forced look + shake)
+        register(new AimLockEvent());           // day 6+ (aim-lock ritual)
         register(new GlobalEvent());            // day 10+ (rare)
     }
 
