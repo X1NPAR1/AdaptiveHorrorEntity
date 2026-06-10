@@ -60,7 +60,7 @@ public final class AssaultManager {
 
     public static void tick(MinecraftServer server) {
         final HorrorConfig config = ConfigManager.get();
-        if (!config.enabled || !config.assault.enabled || !NullManager.hasJoined()) {
+        if (!config.enabled || !config.assault.enabled) {
             return;
         }
         final long now = server.overworld().getGameTime();
@@ -70,10 +70,12 @@ public final class AssaultManager {
         lastProcessedTick = now;
 
         final int day = DayProgression.dayOf(server.overworld());
-        final boolean permanent = day >= config.assault.aggressionDay;
+        final boolean joined = NullManager.hasJoined();
+        // Permanent day+night aggression only once null is present and the world is old enough.
+        final boolean permanent = joined && day >= config.assault.aggressionDay;
 
-        // Night roll (once a minute) while not already aggressive.
-        if (!permanent && !server.overworld().isDay() && now >= assaultEndTick
+        // Automatic night roll (once a minute) - requires null to have joined.
+        if (joined && !permanent && !server.overworld().isDay() && now >= assaultEndTick
                 && now - lastNightRollTick >= 1200L) {
             lastNightRollTick = now;
             if (RNG.nextDouble() < config.assault.nightChancePerMinute) {
@@ -81,6 +83,8 @@ public final class AssaultManager {
             }
         }
 
+        // An assault is active if forced/rolled (assaultEndTick in the future) or permanently. A
+        // forced /ahe assault therefore works even before null has joined.
         final boolean active = permanent || now < assaultEndTick;
         if (!active) {
             return;
@@ -98,7 +102,10 @@ public final class AssaultManager {
     // --- internals -----------------------------------------------------------------------------
 
     private static void startAssault(MinecraftServer server, HorrorConfig config) {
-        assaultEndTick = server.overworld().getGameTime() + (long) config.assault.durationSeconds * 20L;
+        final int min = config.assault.durationMinSeconds;
+        final int span = Math.max(1, config.assault.durationMaxSeconds - min);
+        final int seconds = min + RNG.nextInt(span);
+        assaultEndTick = server.overworld().getGameTime() + (long) seconds * 20L;
         deadHandled.clear();
         for (int i = 0; i < 15; i++) {
             broadcastCorrupted(server);

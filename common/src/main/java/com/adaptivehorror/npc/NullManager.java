@@ -8,6 +8,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,27 +21,28 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Drives the "null" presence: some minutes after the player accepts the disclaimer, a fake player
- * named {@code null} silently joins - a yellow chat line plus a tab-list entry - and only then does
- * the haunting begin. The stalking entity and every event are gated behind {@link #hasJoined()}.
+ * Drives the "null" presence as if it were a real player connecting and disconnecting.
  *
- * <p>This is intentionally a per-server singleton held in memory: each play session, null "joins"
- * once. The fake player is not a real {@link ServerPlayer}; its tab entry is injected via a
- * hand-built {@link ClientboundPlayerInfoUpdatePacket} (constructor opened by the access widener).
+ * <p>Some minutes after the player accepts the disclaimer, {@code null} "joins" (yellow chat line +
+ * tab entry), unlocking the haunting. From then on it behaves like a flaky player: it occasionally
+ * "leaves the server" (the chat says so, the tab entry disappears, and the haunting goes quiet) and
+ * then rejoins a few minutes later. This rhythm of presence and absence is far more unnerving than a
+ * constant.
  */
 public final class NullManager {
 
-    /** Fixed identity for the apparition. The all-zero UUID reads, fittingly, as "null". */
     public static final UUID NULL_UUID = new UUID(0L, 0L);
+
+    private enum State { NOT_JOINED, PRESENT, AWAY }
 
     private static final Random RNG = new Random();
 
-    /**
-     * The packet's {@code (EnumSet, List)} constructor is private (only the decoder uses it). We
-     * resolve it reflectively by parameter types - stable across mappings - to inject a fake entry
-     * without an access widener (which complicates dev runs).
-     */
+    /** The packet's {@code (EnumSet, List)} ctor is private; resolved reflectively by parameter types. */
     private static final Constructor<ClientboundPlayerInfoUpdatePacket> PACKET_CTOR = resolveCtor();
+
+    private static volatile State state = State.NOT_JOINED;
+    private static long timerTick = -1L;        // join / leave / rejoin deadline depending on state
+    private static long lastProcessedTick = Long.MIN_VALUE;
 
     @SuppressWarnings("unchecked")
     private static Constructor<ClientboundPlayerInfoUpdatePacket> resolveCtor() {
@@ -56,25 +58,20 @@ public final class NullManager {
         }
     }
 
-    private static volatile boolean joined;
-    private static long joinAtTick = -1L;
-    private static long lastProcessedTick = Long.MIN_VALUE;
-
     private NullManager() {
     }
 
+    /** True only while null is actually present - the gate for the whole haunting. */
     public static boolean hasJoined() {
-        return joined;
+        return state == State.PRESENT;
     }
 
-    /** Resets state (call on server stop) so the next session re-arms the presence. */
     public static void reset() {
-        joined = false;
-        joinAtTick = -1L;
+        state = State.NOT_JOINED;
+        timerTick = -1L;
         lastProcessedTick = Long.MIN_VALUE;
     }
 
-    /** Server-tick driver. Idempotent within a tick. Arms the timer once a player has accepted. */
     public static void tick(MinecraftServer server) {
         final HorrorConfig config = ConfigManager.get();
         if (!config.enabled || !config.nullEntity.enabled) {
@@ -86,43 +83,43 @@ public final class NullManager {
         }
         lastProcessedTick = now;
 
-        if (joined) {
-            // Re-assert the tab entry every 5s so clients that prune unknown entries keep showing it.
-            if (now % 100L == 0L) {
-                final ClientboundPlayerInfoUpdatePacket packet = buildAddPacket();
-                if (packet != null) {
-                    for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                        player.connection.send(packet);
+        switch (state) {
+            case NOT_JOINED -> {
+                if (timerTick < 0L) {
+                    if (anyPlayerAccepted(server)) {
+                        timerTick = now + seconds(config.nullEntity.joinDelayMinSeconds,
+                                config.nullEntity.joinDelayMaxSeconds);
                     }
+                } else if (now >= timerTick) {
+                    join(server, config, now);
                 }
             }
-            return;
-        }
-
-        if (joinAtTick < 0L) {
-            if (anyPlayerAccepted(server)) {
-                final int span = Math.max(1,
-                        config.nullEntity.joinDelayMaxSeconds - config.nullEntity.joinDelayMinSeconds);
-                final int seconds = config.nullEntity.joinDelayMinSeconds + RNG.nextInt(span);
-                joinAtTick = now + (long) seconds * 20L;
+            case PRESENT -> {
+                if (now % 100L == 0L) {
+                    sendToAll(server, buildAddPacket()); // re-assert the tab entry every 5s
+                }
+                if (now >= timerTick) {
+                    leave(server, config, now);
+                }
             }
-            return;
-        }
-        if (now >= joinAtTick) {
-            doJoin(server);
+            case AWAY -> {
+                if (now >= timerTick) {
+                    join(server, config, now);
+                }
+            }
         }
     }
 
-    /** Immediately performs the join (debug command / forced trigger). */
+    /** Immediately joins (debug). */
     public static void forceJoin(MinecraftServer server) {
-        if (!joined) {
-            doJoin(server);
+        if (state != State.PRESENT) {
+            join(server, ConfigManager.get(), server.overworld().getGameTime());
         }
     }
 
-    /** Sends the existing tab entry to a player who joined after null (so they also see it). */
+    /** Sends the current presence to a player who just connected. */
     public static void syncTo(ServerPlayer player) {
-        if (joined) {
+        if (state == State.PRESENT) {
             final ClientboundPlayerInfoUpdatePacket packet = buildAddPacket();
             if (packet != null) {
                 player.connection.send(packet);
@@ -130,7 +127,40 @@ public final class NullManager {
         }
     }
 
-    // --- internals -----------------------------------------------------------------------------
+    // --- transitions ---------------------------------------------------------------------------
+
+    private static void join(MinecraftServer server, HorrorConfig config, long now) {
+        state = State.PRESENT;
+        timerTick = now + seconds(config.nullEntity.presentMinSeconds, config.nullEntity.presentMaxSeconds);
+        announce(server, "adaptivehorror.null.join");
+        sendToAll(server, buildAddPacket());
+    }
+
+    private static void leave(MinecraftServer server, HorrorConfig config, long now) {
+        state = State.AWAY;
+        timerTick = now + seconds(config.nullEntity.awayMinSeconds, config.nullEntity.awayMaxSeconds);
+        announce(server, "adaptivehorror.null.leave");
+        final ClientboundPlayerInfoRemovePacket remove = new ClientboundPlayerInfoRemovePacket(List.of(NULL_UUID));
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            player.connection.send(remove);
+        }
+    }
+
+    private static void announce(MinecraftServer server, String key) {
+        final Component message = Component.translatable(key).withStyle(ChatFormatting.YELLOW);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            player.sendSystemMessage(message);
+        }
+    }
+
+    private static void sendToAll(MinecraftServer server, ClientboundPlayerInfoUpdatePacket packet) {
+        if (packet == null) {
+            return;
+        }
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            player.connection.send(packet);
+        }
+    }
 
     private static boolean anyPlayerAccepted(MinecraftServer server) {
         final DisclaimerState disclaimer = DisclaimerState.get(server.overworld());
@@ -142,17 +172,9 @@ public final class NullManager {
         return false;
     }
 
-    private static void doJoin(MinecraftServer server) {
-        joined = true;
-        final Component message = Component.translatable("adaptivehorror.null.join")
-                .withStyle(ChatFormatting.YELLOW);
-        final ClientboundPlayerInfoUpdatePacket packet = buildAddPacket();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            player.sendSystemMessage(message);
-            if (packet != null) {
-                player.connection.send(packet);
-            }
-        }
+    private static long seconds(int min, int max) {
+        final int span = Math.max(1, max - min);
+        return (long) (min + RNG.nextInt(span)) * 20L;
     }
 
     private static ClientboundPlayerInfoUpdatePacket buildAddPacket() {
@@ -166,11 +188,9 @@ public final class NullManager {
             profile.getProperties().put("textures",
                     new Property("textures", textureValue, sig == null || sig.isEmpty() ? null : sig));
         }
-
         final ClientboundPlayerInfoUpdatePacket.Entry entry = new ClientboundPlayerInfoUpdatePacket.Entry(
                 NULL_UUID, profile, true, 5, GameType.SURVIVAL,
                 Component.literal(ConfigManager.get().nullEntity.name), null);
-
         try {
             return PACKET_CTOR.newInstance(
                     EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,

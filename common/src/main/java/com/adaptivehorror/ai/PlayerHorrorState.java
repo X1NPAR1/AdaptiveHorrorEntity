@@ -56,6 +56,9 @@ public final class PlayerHorrorState {
     public long nextScaryTick;
     public long nextISeeYouTick;
 
+    /** Timer for the frequent rotating ambient one-shot (travel/scary/iseeyou). 0 = unset. */
+    public long nextAmbientTick;
+
     /** Next tick at which the inventory-drop attempt rolls. 0 = unset. */
     public long nextInventoryDropTick;
 

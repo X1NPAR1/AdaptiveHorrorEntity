@@ -37,6 +37,12 @@ public final class HorrorConfig {
         /** Delay bounds (seconds) after disclaimer acceptance before null joins. Default 5-10 min. */
         public int joinDelayMinSeconds = 300;
         public int joinDelayMaxSeconds = 600;
+        /** How long null stays before it occasionally "leaves the server" (seconds, 5-15 min). */
+        public int presentMinSeconds = 300;
+        public int presentMaxSeconds = 900;
+        /** How long it stays away before rejoining (seconds, 2-10 min). */
+        public int awayMinSeconds = 120;
+        public int awayMaxSeconds = 600;
         /**
          * Optional skin for the tab-list head. {@code textureValue} is the base64 "textures" property
          * value and {@code textureSignature} its signature (may be empty for unsigned). Leave blank to
@@ -126,7 +132,9 @@ public final class HorrorConfig {
     public static final class Assault {
         public boolean enabled = true;
         public double nightChancePerMinute = 0.03;
-        public int durationSeconds = 60;
+        /** Each assault lasts a randomised time in this range (default 30-90s). */
+        public int durationMinSeconds = 30;
+        public int durationMaxSeconds = 90;
         public int radiusChunks = 4;
         public float contactDamage = 1.0f;
         public int aggressionDay = 10;       // permanent day+night aggression and 3x spawns after this

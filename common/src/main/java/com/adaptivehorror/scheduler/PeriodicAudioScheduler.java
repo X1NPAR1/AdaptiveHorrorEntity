@@ -42,6 +42,30 @@ public final class PeriodicAudioScheduler {
             state.nextISeeYouTick = schedule(now, config.audio.iSeeYouIntervalMinSeconds,
                     config.audio.iSeeYouIntervalMaxSeconds, random);
         }
+
+        // A more frequent rotating one-shot drawn from all the ambient cues, every 1-4 minutes, so
+        // travel1/travel2/scary_ambient/iseeyou are all heard from time to time during play.
+        if (state.nextAmbientTick == 0L) {
+            state.nextAmbientTick = schedule(now, 60, 240, random);
+        } else if (now >= state.nextAmbientTick) {
+            playRotatingAmbient(player, config, random);
+            state.nextAmbientTick = schedule(now, 60, 240, random);
+        }
+    }
+
+    private static final String[] AMBIENT_POOL = {"travel1", "travel2", "scary_ambient", "iseeyou"};
+
+    private static void playRotatingAmbient(ServerPlayer player, HorrorConfig config, Random random) {
+        final String sound = AMBIENT_POOL[random.nextInt(AMBIENT_POOL.length)];
+        if (random.nextBoolean()) {
+            // From a random nearby direction so the source can't be placed.
+            final double angle = random.nextDouble() * Math.PI * 2.0;
+            final double dist = 5.0 + random.nextDouble() * 8.0;
+            final Vec3 pos = player.position().add(Math.cos(angle) * dist, 0.5, Math.sin(angle) * dist);
+            HorrorNet.sendSoundAt(player, sound, pos, Math.max(config.audio.ambientVolume, 0.6F), 1.0F);
+        } else {
+            HorrorNet.sendSound2D(player, sound, Math.max(config.audio.ambientVolume, 0.6F), 1.0F);
+        }
     }
 
     private static void playDirectional(ServerPlayer player, HorrorConfig config, Random random) {

@@ -48,6 +48,9 @@ public final class MobLockManager {
     /** One corrupted/hint line is broadcast every this-many ticks (~3 per second). */
     private static final int MESSAGE_INTERVAL_TICKS = 7;
 
+    /** scary_ambient is ~7.8s long; replay it on this cadence so it covers the whole lock. */
+    private static final int AMBIENT_LOOP_TICKS = 156;
+
     private record Locked(Mob mob, boolean originalNoAi) {
     }
 
@@ -127,9 +130,13 @@ public final class MobLockManager {
             mob.setNoAi(true);
         }
 
-        // The whisper, to everyone.
+        // A sustained dread tone for the whole lock.
+        playAmbient(server);
+    }
+
+    private static void playAmbient(MinecraftServer server) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            HorrorNet.sendSound2D(player, "iseeyou", 1.0F, 1.0F);
+            HorrorNet.sendSound2D(player, "scary_ambient", 1.0F, 1.0F);
         }
     }
 
@@ -161,11 +168,9 @@ public final class MobLockManager {
             messagesSent++;
         }
 
-        // A second whisper halfway through.
-        if (lockTicksRemaining == durationTicks / 2) {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                HorrorNet.sendSound2D(player, "iseeyou", 1.0F, 0.9F);
-            }
+        // Keep scary_ambient going until the lock ends (don't start a new loop right at the tail).
+        if (elapsed > 0 && elapsed % AMBIENT_LOOP_TICKS == 0 && lockTicksRemaining > 20) {
+            playAmbient(server);
         }
 
         if (lockTicksRemaining <= 0) {

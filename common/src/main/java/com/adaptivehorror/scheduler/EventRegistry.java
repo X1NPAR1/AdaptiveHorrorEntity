@@ -10,6 +10,7 @@ import com.adaptivehorror.events.ScreenEffectEvent;
 import com.adaptivehorror.events.ShadowGhostEvent;
 import com.adaptivehorror.events.SignEvent;
 import com.adaptivehorror.events.SoundIllusionEvent;
+import com.adaptivehorror.events.WhisperEvent;
 import com.adaptivehorror.events.WorldManipulationEvent;
 
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ public final class EventRegistry {
 
     static {
         register(new SoundIllusionEvent());     // day 2+
+        register(new WhisperEvent());           // day 1+ (over-the-shoulder whisper)
         register(new MusicDistortEvent());      // day 2+
         register(new SignEvent());              // day 3+
         register(new ChatMessageEvent());       // day 4+
