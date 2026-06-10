@@ -65,7 +65,11 @@ public final class HorrorConfig {
         public boolean shadowEntities = true;
         public boolean globalEvents = true;
         public boolean mobLock = true;
+        public boolean mobDeathHorror = true;
     }
+
+    /** Chance (0-1) that killing a mob births a black null from the corpse. */
+    public double mobDeathChance = 0.05;
 
     /** Core stalking entity tuning. */
     public static final class Entity {
@@ -76,6 +80,11 @@ public final class HorrorConfig {
         public double jumpscareKillChance = 0.20;
         /** Chance the {@code iseeyou} whisper plays when a stalker vanishes on approach. */
         public double vanishWhisperChance = 0.10;
+        /** Chance a passive white (day) null fires a jumpscare as it vanishes (else silent). */
+        public double whiteVanishJumpscareChance = 0.10;
+        /** Daytime black-null chance grows by this per day past day 2, up to the cap (day 3+ only). */
+        public double daytimeBlackChancePerDay = 0.12;
+        public double daytimeBlackChanceCap = 0.60;
         /** Player approaches within this radius -> entity instantly despawns. */
         public int despawnTriggerRadius = 25;
         /** Player travels this far -> current entity despawns and re-spawns elsewhere. */

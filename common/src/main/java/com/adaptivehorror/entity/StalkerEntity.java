@@ -26,11 +26,39 @@ public class StalkerEntity extends Mob {
     private static final EntityDataAccessor<Boolean> DATA_NIGHT =
             SynchedEntityData.defineId(StalkerEntity.class, EntityDataSerializers.BOOLEAN);
 
+    /**
+     * Hard lifetime cap (server ticks). The manager relocates the far form well before this; this is a
+     * pure failsafe so a stalker the manager lost track of (e.g. orphaned when its far chunk unloaded)
+     * can NEVER persist forever.
+     */
+    private static final int MAX_LIFETIME_TICKS = 20 * 150;     // 150 s
+    /** If no player is within this range, the stalker was abandoned and cleans itself up. */
+    private static final double ABANDON_DISTANCE = 256.0;
+
+    private int serverAge;
+
     public StalkerEntity(EntityType<? extends StalkerEntity> type, Level level) {
         super(type, level);
         setPersistenceRequired();
         setNoAi(true);
         setSilent(true);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level().isClientSide) {
+            return;
+        }
+        // Self-despawn failsafe: the manager owns the lifecycle, but if it ever loses the reference
+        // (chunk churn, dimension change, desync) the entity must still tidy itself up.
+        if (++serverAge > MAX_LIFETIME_TICKS) {
+            discard();
+            return;
+        }
+        if ((serverAge & 31) == 0 && level().getNearestPlayer(this, ABANDON_DISTANCE) == null) {
+            discard();
+        }
     }
 
     /** Default attributes. Movement speed is zero - it must never path or drift. */

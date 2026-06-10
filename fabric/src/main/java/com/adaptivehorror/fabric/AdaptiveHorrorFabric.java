@@ -3,15 +3,19 @@ package com.adaptivehorror.fabric;
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.command.HorrorCommands;
 import com.adaptivehorror.event.AssaultManager;
+import com.adaptivehorror.event.MobDeathHorror;
 import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.FabricNetworkHelper;
 import com.adaptivehorror.scheduler.HorrorScheduler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Fabric entrypoint. Runs common init, registers the typed payloads + C2S receiver, and wires the
@@ -42,6 +46,13 @@ public final class AdaptiveHorrorFabric implements ModInitializer {
 
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
                 HorrorScheduler.removePlayer(handler.player));
+
+        ServerLivingEntityEvents.AFTER_DEATH.register((victim, source) -> {
+            if (victim.level() instanceof ServerLevel serverLevel
+                    && source.getEntity() instanceof ServerPlayer killer) {
+                MobDeathHorror.onMobKilled(serverLevel, victim, killer);
+            }
+        });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 HorrorCommands.register(dispatcher));

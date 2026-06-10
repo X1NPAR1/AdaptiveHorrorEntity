@@ -120,20 +120,23 @@ public final class HorrorCommands {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
         final PlayerHorrorState s = HorrorScheduler.getOrCreateState(player);
         final int day = DayProgression.dayOf(player.level());
+        final double kill = com.adaptivehorror.ai.AdaptiveAI.killChance(day, ConfigManager.get().entity.jumpscareKillChance);
         feedback(ctx, String.format(
-                "Gün %d | yoğunluk %.2f | null katıldı: %s | tetikte %.2f | madencilik %.0f | kamp %.0f | afk %dsn | aktif: %s",
-                day, DayProgression.intensity(day, ConfigManager.get()),
+                "Gün %d | saldırı şansı %.2f | öldürme şansı %.2f | yoğunluk %.2f | null: %s | tetikte %.2f | afk %dsn | aktif: %s",
+                day, com.adaptivehorror.ai.AdaptiveAI.attackBase(day), kill,
+                DayProgression.intensity(day, ConfigManager.get()),
                 NullManager.hasJoined() ? "evet" : "hayır", s.behavior.vigilance(),
-                s.behavior.miningScore, s.behavior.campingScore, s.behavior.afkTicks / 20,
-                s.activeStalkerId != null ? "evet" : "hayır"));
+                s.behavior.afkTicks / 20, s.activeStalkerId != null ? "evet" : "hayır"));
         return 1;
     }
 
     private static int day(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         final ServerPlayer player = ctx.getSource().getPlayerOrException();
         final int day = DayProgression.dayOf(player.level());
-        feedback(ctx, "Oyun günü " + day + ", yoğunluk "
-                + String.format("%.2f", DayProgression.intensity(day, ConfigManager.get())));
+        final double strike = com.adaptivehorror.ai.AdaptiveAI.attackBase(day);
+        final double kill = com.adaptivehorror.ai.AdaptiveAI.killChance(day, ConfigManager.get().entity.jumpscareKillChance);
+        feedback(ctx, String.format("Oyun günü %d | saldırı şansı %.2f | öldürme şansı %.2f | yoğunluk %.2f",
+                day, strike, kill, DayProgression.intensity(day, ConfigManager.get())));
         return 1;
     }
 

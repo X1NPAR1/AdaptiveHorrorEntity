@@ -198,8 +198,13 @@ public final class StalkerManager {
         if (random.nextDouble() < chance) {
             aggressiveReaction(player, stalker, state, random);
         } else {
-            if (random.nextDouble() < config.entity.vanishWhisperChance) {
-                HorrorNet.sendSound2D(player, "iseeyou", 0.8F, 1.0F); // only 10% of the time
+            // The passive white (day) watcher is unsettling on its own: 10% it jumpscares as it goes.
+            final boolean white = state.stalkerBehavior == StalkerBehavior.FAR
+                    && !state.stalkerBlack && player.level().isDay();
+            if (white && random.nextDouble() < config.entity.whiteVanishJumpscareChance) {
+                HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 12);
+            } else if (random.nextDouble() < config.entity.vanishWhisperChance) {
+                HorrorNet.sendSound2D(player, "iseeyou", 0.8F, 1.0F);
             }
             vanish(stalker, player, state, random);
         }
@@ -304,15 +309,17 @@ public final class StalkerManager {
 
     private static void spawnFar(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
                                  HorrorConfig config, Random random) {
-        final BlockPos far = SpawnLocator.findSpawn(player, random,
-                config.entity.spawnDistanceMin, config.entity.spawnDistanceMax);
+        // Guaranteed at least the vanish radius from EVERY player - the far watcher never pops in close.
+        final BlockPos far = SpawnLocator.findSpawnClear(player, random,
+                config.entity.spawnDistanceMin, config.entity.spawnDistanceMax, config.entity.despawnTriggerRadius);
         if (far == null) {
             return;
         }
-        // From day 3 on, a black (more aggressive) null can appear even in daylight, beside the white.
-        final boolean black = level.isDay()
-                && com.adaptivehorror.scheduler.DayProgression.dayOf(level) >= 3
-                && random.nextDouble() < 0.30;
+        // Day 1-2: never a daytime black null. From day 3 the chance grows each day up to the cap.
+        final int day = com.adaptivehorror.scheduler.DayProgression.dayOf(level);
+        final double blackChance = day < 3 ? 0.0
+                : Math.min(config.entity.daytimeBlackChanceCap, config.entity.daytimeBlackChancePerDay * (day - 2));
+        final boolean black = level.isDay() && random.nextDouble() < blackChance;
         spawnAt(player, level, state, far, StalkerBehavior.FAR, black);
     }
 

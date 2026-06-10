@@ -159,7 +159,9 @@ public final class HorrorScheduler {
         final int span = Math.max(1, max - min);
         final double scale = 1.0 / Math.max(0.25, intensity);
         final double caveFactor = underground ? 0.55 : 1.0; // caves haunt ~2x as often
-        final long seconds = (long) ((min + RNG.nextInt(span)) * scale * caveFactor);
+        // Cap the silence so the world always feels haunted: <=90s underground, <=150s on the surface.
+        final long cap = underground ? 90L : 150L;
+        final long seconds = Math.min(cap, (long) ((min + RNG.nextInt(span)) * scale * caveFactor));
         return now + Math.max(20L, seconds * 20L);
     }
 

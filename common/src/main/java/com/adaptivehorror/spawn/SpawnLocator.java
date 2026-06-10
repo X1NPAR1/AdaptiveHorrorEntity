@@ -32,31 +32,45 @@ public final class SpawnLocator {
     @Nullable
     public static BlockPos findSpawn(ServerPlayer player, Random random, int minDistance, int maxDistance) {
         return findInArc(player, random, minDistance, maxDistance,
-                PERIPHERAL_MIN_ANGLE, PERIPHERAL_MAX_ANGLE, false);
+                PERIPHERAL_MIN_ANGLE, PERIPHERAL_MAX_ANGLE, false, 0.0);
+    }
+
+    /**
+     * Like {@link #findSpawn} but mathematically guarantees the spot is at least {@code clearance}
+     * blocks from <em>every</em> player - used for the far white watcher so it can never pop in on
+     * top of anyone in multiplayer.
+     */
+    @Nullable
+    public static BlockPos findSpawnClear(ServerPlayer player, Random random, int minDistance, int maxDistance,
+                                          double clearance) {
+        return findInArc(player, random, minDistance, maxDistance,
+                PERIPHERAL_MIN_ANGLE, PERIPHERAL_MAX_ANGLE, false, clearance);
     }
 
     /** Peripheral, but only open-sky positions (outside a shelter / at a cave mouth). */
     @Nullable
     public static BlockPos findSkylit(ServerPlayer player, Random random, int minDistance, int maxDistance) {
         return findInArc(player, random, minDistance, maxDistance,
-                PERIPHERAL_MIN_ANGLE, PERIPHERAL_MAX_ANGLE, true);
+                PERIPHERAL_MIN_ANGLE, PERIPHERAL_MAX_ANGLE, true, 0.0);
     }
 
     /** Directly behind the player (used when AFK) - close and unsettling. */
     @Nullable
     public static BlockPos findBehind(ServerPlayer player, Random random, int minDistance, int maxDistance) {
         return findInArc(player, random, minDistance, maxDistance,
-                180.0 - BEHIND_SPREAD, 180.0 + BEHIND_SPREAD, false);
+                180.0 - BEHIND_SPREAD, 180.0 + BEHIND_SPREAD, false, 0.0);
     }
 
     /**
      * Core search: sample angles in {@code [minAngle, maxAngle]} (degrees, measured from the player's
      * look vector, on a random side), pick a distance in range, resolve the surface, and validate a
-     * clear standing spot. {@code requireSky} additionally restricts to positions that can see sky.
+     * clear standing spot. {@code requireSky} additionally restricts to open-sky positions;
+     * {@code minPlayerClearance > 0} rejects any spot that close to another player.
      */
     @Nullable
     private static BlockPos findInArc(ServerPlayer player, Random random, int minDistance, int maxDistance,
-                                      double minAngle, double maxAngle, boolean requireSky) {
+                                      double minAngle, double maxAngle, boolean requireSky,
+                                      double minPlayerClearance) {
         final Level level = player.level();
         final Vec3 origin = player.position();
         final float yawRad = (float) Math.toRadians(player.getYRot());
@@ -79,6 +93,11 @@ public final class SpawnLocator {
             }
             if (requireSky && !level.canSeeSky(candidate)) {
                 continue;
+            }
+            if (minPlayerClearance > 0.0 && level.getNearestPlayer(
+                    candidate.getX() + 0.5, candidate.getY() + 0.5, candidate.getZ() + 0.5,
+                    minPlayerClearance, false) != null) {
+                continue; // too close to some player
             }
             return candidate;
         }
