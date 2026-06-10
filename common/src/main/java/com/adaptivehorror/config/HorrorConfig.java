@@ -70,8 +70,10 @@ public final class HorrorConfig {
     /** Core stalking entity tuning. */
     public static final class Entity {
         /** Minimum / maximum spawn distance from the player, in blocks. */
-        public int spawnDistanceMin = 80;
-        public int spawnDistanceMax = 100;
+        public int spawnDistanceMin = 50;
+        public int spawnDistanceMax = 150;
+        /** When a jumpscare "attack" happens, the chance (0-1) it actually kills (else just scares). */
+        public double jumpscareKillChance = 0.20;
         /** Player approaches within this radius -> entity instantly despawns. */
         public int despawnTriggerRadius = 25;
         /** Player travels this far -> current entity despawns and re-spawns elsewhere. */
@@ -139,6 +141,24 @@ public final class HorrorConfig {
         public float contactDamage = 1.0f;
         public int aggressionDay = 10;       // permanent day+night aggression and 3x spawns after this
         public int extraSpawnPerCycle = 3;   // mobs added near each player per spawn cycle (post-day-10)
+    }
+
+    public final Watchers watchers = new Watchers();
+
+    /**
+     * The "many eyes". After the fifth night, a group of extra nulls stands far off and simply
+     * watches. They are almost always peaceful - vanishing if the player gets close - but a few will
+     * instead lunge with a jumpscare.
+     */
+    public static final class Watchers {
+        public boolean enabled = true;
+        public int startDay = 5;            // appear after the fifth night
+        public int minCount = 3;
+        public int maxCount = 8;
+        public int distanceMin = 50;
+        public int distanceMax = 200;
+        public int vanishRadius = 25;       // vanish (or strike) once the player is this close
+        public double attackChance = 0.05;  // chance a watcher strikes instead of vanishing
     }
 
     public final InventoryDrop inventoryDrop = new InventoryDrop();

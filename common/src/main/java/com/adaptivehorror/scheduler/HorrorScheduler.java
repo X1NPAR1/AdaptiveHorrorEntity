@@ -11,6 +11,7 @@ import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.spawn.StalkerManager;
+import com.adaptivehorror.spawn.WatcherManager;
 import com.adaptivehorror.world.DisclaimerState;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -85,6 +86,7 @@ public final class HorrorScheduler {
         final double intensity = DayProgression.intensity(day, config);
 
         StalkerManager.tick(player, state, config, RNG);
+        WatcherManager.tick(player, state, config, RNG);
         tickTravelSound(player, state, config, intensity);
         PeriodicAudioScheduler.tick(player, state, config, RNG);
         InventoryDropManager.tick(player, state, config, RNG);
@@ -95,6 +97,7 @@ public final class HorrorScheduler {
         final PlayerHorrorState state = STATES.remove(player.getUUID());
         if (state != null) {
             StalkerManager.despawn(player.serverLevel(), state);
+            WatcherManager.despawnAll(player.serverLevel(), state);
         }
     }
 

@@ -163,7 +163,7 @@ public final class StalkerManager {
         state.revealEndTick = player.level().getGameTime() + REVEAL_TICKS;
 
         if (random.nextDouble() < STARE_KILL_CHANCE) {
-            scheduleKill(player, state, random);
+            jumpscareAttack(player, state, random);
         }
     }
 
@@ -199,8 +199,8 @@ public final class StalkerManager {
         final Vec3 from = stalker.position();
         final Vec3 to = player.position();
         if (from.distanceTo(to) <= RUSH_KILL_DISTANCE) {
-            // Jumpscare and vanish now; death follows one second later.
-            scheduleKill(player, state, random);
+            // Jumpscare and vanish now; death follows a second later only 20% of the time.
+            jumpscareAttack(player, state, random);
             stalker.discard();
             clear(state);
             return;
@@ -227,9 +227,16 @@ public final class StalkerManager {
         }
     }
 
-    private static void scheduleKill(ServerPlayer player, PlayerHorrorState state, Random random) {
+    /**
+     * A jumpscare strike. Always shows the jumpscare; only sometimes (config jumpscareKillChance,
+     * default 20%) does it schedule the actual death a second later - 80% of the time null just
+     * scares and vanishes. Shared by the rush, the stare reaction and the watchers.
+     */
+    public static void jumpscareAttack(ServerPlayer player, PlayerHorrorState state, Random random) {
         HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 14);
-        state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
+        if (random.nextDouble() < ConfigManager.get().entity.jumpscareKillChance) {
+            state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
+        }
     }
 
     private static void strikeLightning(ServerLevel level, Vec3 near) {

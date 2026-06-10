@@ -123,9 +123,13 @@ intensity, debug mode) lives there — there are no hardcoded timers in the logi
 
 - **Stalker archetypes** (rolled per spawn): EFFECT 47% (lightning + hex + sting, then vanish),
   VANISH 25%, WATCH 25% (spawns close behind), RUSH **3%** (the only lethal routine).
+- The single stalker spawns **50-150 blocks** out and watches.
+- **The many eyes** (after the 5th night): 3-8 extra nulls stand **50-200 blocks** off and stare.
+  They're 95% peaceful (vanish if you come within 25 blocks); 5% strike with a jumpscare.
 - **The enderman rule** (any form): stare at it for 2s → it teleports right in front of you, plays a
-  sting, inflicts slowness/blindness/nausea (5s) and vanishes; 5% chance it turns lethal.
-- **RUSH death**: reaches 1 block → jumpscare + vanish, then you die ~1s later.
+  sting, inflicts slowness/blindness/nausea (5s) and vanishes; 5% chance it turns aggressive.
+- **Jumpscare strikes rarely kill**: every jumpscare-attack only kills **20%** of the time - the
+  other 80% it just scares and vanishes. RUSH reaches 1 block → jumpscare, then (20%) death ~1s later.
 - **Jumpscare side-effects**: 10% the game window shakes / shrinks / grows on its own; **1% the game
   crashes** (rare, deliberate).
 - **Mob lock** ("everything stares"): every 5 min / 25%, all mobs within 4 chunks freeze and stare
