@@ -2,7 +2,10 @@ package com.adaptivehorror.scheduler;
 
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.events.ChatMessageEvent;
+import com.adaptivehorror.events.CountdownEvent;
+import com.adaptivehorror.events.FakeJoinEvent;
 import com.adaptivehorror.events.FakePlayerEvent;
+import com.adaptivehorror.events.FootstepStalkEvent;
 import com.adaptivehorror.events.GlobalEvent;
 import com.adaptivehorror.events.JumpscareEvent;
 import com.adaptivehorror.events.MusicDistortEvent;
@@ -30,16 +33,19 @@ public final class EventRegistry {
     private static final List<HorrorEvent> EVENTS = new ArrayList<>();
 
     static {
-        register(new SoundIllusionEvent());     // day 2+
+        register(new SoundIllusionEvent());     // day 1+
         register(new WhisperEvent());           // day 1+ (over-the-shoulder whisper)
+        register(new FootstepStalkEvent());     // day 1+ (approaching footsteps)
         register(new MusicDistortEvent());      // day 2+
-        register(new SignEvent());              // day 3+
-        register(new ChatMessageEvent());       // day 4+
-        register(new JumpscareEvent());         // day 5+
-        register(new ScreenEffectEvent());      // day 5+
-        register(new ShadowGhostEvent());       // day 5+
-        register(new FakePlayerEvent());        // day 6+
-        register(new WorldManipulationEvent()); // day 7+
+        register(new SignEvent());              // day 2+
+        register(new ChatMessageEvent());       // day 1+ (incl. your own name)
+        register(new JumpscareEvent());         // day 3+
+        register(new ScreenEffectEvent());      // day 1+
+        register(new ShadowGhostEvent());       // day 3+
+        register(new FakeJoinEvent());          // day 4+ (a stranger "joins")
+        register(new FakePlayerEvent());        // day 4+
+        register(new WorldManipulationEvent()); // day 3+ (door / block / torch / skull)
+        register(new CountdownEvent());         // day 5+ (3..2..1.. jumpscare)
         register(new GlobalEvent());            // day 10+ (rare)
     }
 

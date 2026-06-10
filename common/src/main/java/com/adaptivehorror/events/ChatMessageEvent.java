@@ -5,10 +5,12 @@ import com.adaptivehorror.scheduler.EventContext;
 import com.adaptivehorror.scheduler.HorrorEvent;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * A whisper in chat that reads exactly like another player talking: {@code <null> ...} in plain
- * white. Localised content; extremely rare by weight, so when it happens it lands.
+ * white. Localised content, plus a rare line that simply says the player's own name - nothing is more
+ * unsettling than the thing in the dark knowing who you are. Extremely rare by weight.
  */
 public final class ChatMessageEvent implements HorrorEvent {
 
@@ -45,12 +47,14 @@ public final class ChatMessageEvent implements HorrorEvent {
 
     @Override
     public void execute(EventContext ctx) {
-        sendNullChat(ctx, Component.translatable(KEYS[ctx.random.nextInt(KEYS.length)]));
+        final Component message = ctx.random.nextFloat() < 0.25F
+                ? Component.literal(ctx.player.getGameProfile().getName())   // it knows your name
+                : Component.translatable(KEYS[ctx.random.nextInt(KEYS.length)]);
+        sendNullChat(ctx.player, message);
     }
 
-    /** Broadcasts a {@code <null> message} line, in white, to the player - the shared null-chat style. */
-    public static void sendNullChat(EventContext ctx, Component message) {
-        ctx.player.sendSystemMessage(
-                Component.literal("<null> ").append(message).withStyle(ChatFormatting.WHITE));
+    /** Broadcasts a {@code <null> message} line, in white - the shared null-chat style. */
+    public static void sendNullChat(ServerPlayer player, Component message) {
+        player.sendSystemMessage(Component.literal("<null> ").append(message).withStyle(ChatFormatting.WHITE));
     }
 }

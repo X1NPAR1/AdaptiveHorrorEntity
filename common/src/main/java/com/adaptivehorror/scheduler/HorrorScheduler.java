@@ -80,6 +80,7 @@ public final class HorrorScheduler {
         final PlayerHorrorState state =
                 STATES.computeIfAbsent(player.getUUID(), PlayerHorrorState::new);
 
+        drainScheduled(player, state);
         BehaviorSampler.sample(player, state);
 
         final int day = DayProgression.dayOf(player.level());
@@ -103,6 +104,25 @@ public final class HorrorScheduler {
 
     public static void clear() {
         STATES.clear();
+    }
+
+    /** Runs any deferred horror steps whose time has come. */
+    private static void drainScheduled(ServerPlayer player, PlayerHorrorState state) {
+        if (state.scheduled.isEmpty()) {
+            return;
+        }
+        final long now = player.level().getGameTime();
+        state.scheduled.removeIf(a -> {
+            if (now < a.fireTick) {
+                return false;
+            }
+            try {
+                a.action.run();
+            } catch (Exception e) {
+                AdaptiveHorror.LOGGER.debug("Scheduled action failed", e);
+            }
+            return true;
+        });
     }
 
     /** Resolves (creating if needed) the per-player state. Used by debug commands. */

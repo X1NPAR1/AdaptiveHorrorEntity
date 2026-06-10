@@ -1,15 +1,15 @@
 # Adaptive Horror Entity
 
-A psychological-horror Minecraft mod for **1.21.1** targeting **NeoForge and Fabric** from one
-codebase via the Architectury multi-loader toolchain. The design goal is a single, intelligent
-supernatural presence that makes the player feel *watched* — tension and doubt over cheap jumpscares.
+**Version 2.6.3** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
+multi-loader). The design goal is a single, intelligent supernatural presence — *null* — that makes
+the player feel *watched*: tension, doubt and paranoia over cheap jumpscares.
 
-> **Status: full feature pass.** The project skeleton, build, config, registries, the stalking
-> entity and its full spawn / proximity / relocation lifecycle, the server-side scheduler, the
-> cross-loader networking layer, the client presentation (jumpscares, screen/camera effects, music
-> distortion), the once-per-world disclaimer gate, adaptive-AI sampling, day progression, periodic
-> ambient audio, and a weighted event framework with ten concrete events are all implemented. See
-> [Implemented systems](#implemented-systems).
+> **Status: production.** Disclaimer gate, the `null` presence (joins/leaves like a real player),
+> the contextual stalker, a post-night-5 watcher group, day/night aggression, a weighted + time-day
+> -gated event framework (sixteen concrete events incl. approaching footsteps, a whispered countdown,
+> a fake stranger "joining", your own name in chat), the mob-lock and assault set-pieces, the
+> personalised sign, jumpscare window-torment/crash, cross-loader networking and full Turkish
+> localisation are all implemented and building. See [What can happen](#what-can-happen).
 
 ## Project layout
 
@@ -29,7 +29,7 @@ through a small `ServiceLoader`-based abstraction in `com.adaptivehorror.platfor
   eagerly — both hidden behind one call-site).
 
 Each loader ships a `META-INF/services` entry pointing at its implementation. This keeps the core
-trivially compilable and portable, independent of any Architectury-API version drift on 1.16.5.
+trivially compilable and portable, independent of any Architectury-API version drift.
 
 ## Assets — IMPORTANT
 
@@ -74,14 +74,16 @@ Pick the jar matching your loader. Ignore the `-sources.jar` and `-dev*.jar` fil
 1. Enter a world → accept the fullscreen disclaimer (once per world).
 2. The mod arms a timer. **5–10 minutes later, `null` "joins"**: a yellow `null sunucuya katıldı`
    chat line, and a `null` entry appears in the tab list.
-3. Only *after* null joins does the haunting begin — the stalking entity (white by day, black with
-   glowing eyes by night) and every event are gated behind it.
+3. Only *after* null joins does the haunting begin — the stalking entity (pure white by day, pure
+   black by night) and every event are gated behind it.
+4. null then comes and goes like a flaky player: it occasionally "leaves the server" (the haunting
+   pauses) and rejoins minutes later. After the **5th night** a watcher group appears; from **day 10**
+   it turns permanently aggressive.
 
-All in-game text is **Turkish**. The mod ships fully functional (not a demo); the operator commands
-below are for verification/showcasing, not a prerequisite.
+All in-game text is **Turkish**. The mod ships fully functional and automatic (not a demo); the
+operator commands below are for verification/showcasing, not a prerequisite.
 
-> Tab-list head colour for `null` uses the default skin unless you set
-> `nullEntity.textureValue`/`textureSignature` (a base64 skin property) in the config.
+> The `null` tab-list head is black by default (a client mixin maps its skin to `stalker_black.png`).
 
 ## In-game operator commands
 
@@ -90,9 +92,9 @@ All commands require permission level 2 (single-player: enable cheats). Base com
 
 | Command | What it does |
 | --- | --- |
-| `/ahe spawn` | Force-spawn the stalker in your peripheral vision right now |
+| `/ahe spawn` | Force-spawn the stalker nearby (10-28 blocks) and print its coordinates |
 | `/ahe jumpscare [1-8]` | Trigger a full-screen jumpscare (random image if omitted) |
-| `/ahe event <id>` | Force-run a specific event (tab-completes: `sign`, `chat`, `fake_player`, `world_manipulation`, `global`, …) |
+| `/ahe event <id>` | Force-run an event (tab-completes: `footsteps`, `countdown`, `fake_join`, `whisper`, `chat`, `sign`, `world_manipulation`, `shadow_ghost`, `fake_player`, `global`, …) |
 | `/ahe sound <name>` | Play a registered sound (`scary_ambient`, `iseeyou`, `travel1`, …) |
 | `/ahe nulljoin` | Force `null` to join now (skip the 5–10 min wait), unlocking the haunting |
 | `/ahe moblock` | Force the "everything stares" lock event right now |
@@ -105,75 +107,76 @@ All commands require permission level 2 (single-player: enable cheats). Base com
 Quick smoke test: join a world → accept the disclaimer → `/ahe nulljoin` → `/ahe spawn` (it now
 spawns ~10–25 blocks away and prints the coordinates) → `/ahe jumpscare` → `/ahe event sign`.
 
-> **Version note:** `gradle.properties` pins the known-good 1.16.5 toolchain versions. If Gradle
-> fails to resolve a dependency, bump to the latest 1.16.5-compatible patch — the layout is stable.
+> **Version note:** `gradle.properties` pins the known-good 1.21.1 toolchain versions. If Gradle
+> fails to resolve a dependency, bump to the latest 1.21.1-compatible patch — the layout is stable.
 
 ## Configuration
 A pretty-printed JSON config is written to `config/adaptivehorror.json` on first run. Every
-behavioural value (distances, probabilities, cadences, per-subsystem on/off toggles, global
-intensity, debug mode) lives there — there are no hardcoded timers in the logic.
+behavioural value (distances, probabilities, cadences, per-subsystem on/off toggles, day/night
+attack chances, the null join/leave timing, global intensity, debug mode) lives there — there are no
+hardcoded timers in the logic.
 
 ## Design fidelity notes
-- **"Darkness" effect:** does not exist before MC 1.19. On 1.16.5 the proximity scare substitutes
-  *Weakness*; the effect pool is one constant in `StalkerManager`.
 - **"Frame-perfect" audio/image sync:** Minecraft streams audio asynchronously, so exact frame sync
   isn't guaranteed by the engine. Events are triggered same-tick, which is as tight as it allows.
 
-## Encounter behaviours & escalation
+## What can happen
 
-- **Stalker archetypes** (rolled per spawn): EFFECT 47% (lightning + hex + sting, then vanish),
-  VANISH 25%, WATCH 25% (spawns close behind), RUSH **3%** (the only lethal routine).
-- The single stalker spawns **contextually**: directly **behind** you (vanishes when you look at
-  it), **75-175 blocks** off (vanishes when you come within 25), at your **window** when you're
-  sheltered at night, or right **in front of you while you sleep** (10%, gone when you wake). On
-  trigger it's **95% just vanish, 5% strike**. White by day, black by night.
-- **The many eyes** (after the 5th night): 3-8 extra nulls stand **50-200 blocks** off and stare.
-  They're 95% peaceful (vanish if you come within 25 blocks); 5% strike with a jumpscare.
-- **The enderman rule** (any form): stare at it for 2s → it teleports right in front of you, plays a
-  sting, inflicts slowness/blindness/nausea (5s) and vanishes; 5% chance it turns aggressive.
-- **Jumpscare strikes rarely kill**: every jumpscare-attack only kills **20%** of the time - the
-  other 80% it just scares and vanishes. RUSH reaches 1 block → jumpscare, then (20%) death ~1s later.
-- **Jumpscare side-effects**: 10% the game window shakes / shrinks / grows on its own; **1% the game
-  crashes** (rare, deliberate).
-- **Mob lock** ("everything stares"): every 5 min / 25%, all mobs within 4 chunks freeze and stare
-  for 30s while chat floods (~3 lines/s, corrupted + hidden hints) and `iseeyou` plays.
-- **Night assault**: at night, 3%/min, nearby mobs turn hostile for a minute (weak); a mob kill →
-  jumpscare. **From day 10**, this is permanent (day & night) and spawns triple.
-- **Inventory drop**: from day 4, every 10 min / 15%, null flings your held stack or empties your
-  whole inventory onto the ground.
-- **Personal sign**: 25% of sign events write your **computer name, city and country** + "yakınındayım".
-- All `null` chat reads like a real player: `<null> …` in white.
+**The stalker (single, per player).** Spawns *contextually*: by day always **75-175 blocks** off,
+watching (vanishes when you come within 25); by night it may loom **directly behind** you (vanishes
+when you look at it or back into it), appear just outside your **window** when you're sheltered, or
+stand **right in front of you while you sleep** (10%, gone when you wake). On trigger it is **95% just
+vanish, 5% strike**. After it vanishes there is a **15-60 s gap** before the next; wander **200+
+blocks** away and it relocates to a fresh far spot. **Pure white by day, pure black by night.** Night
+nulls are far more aggressive (5% strike by day → **18% at night**).
 
-## Implemented systems
-- **Core stalking entity** — peripheral spawn (80-100 blocks), instant despawn within 25 blocks with
-  the 15% / 1-3 randomized status-effect roll, relocate-on-travel (75 blocks). White by day, black
-  with emissive glowing eyes by night.
-- **Cross-loader networking** — one S2C effect channel + C2S control, abstracted behind
-  `INetworkHelper` with Forge (`SimpleChannel`) and Fabric (`ServerPlayNetworking`) implementations.
-- **Client presentation** (`ClientHorrorManager`) — full-screen jumpscare images + synced sound,
-  blackout, vignette pulse, glitch bars, music silencing. Driven by per-loader tick + HUD hooks.
-- **Disclaimer** — once-per-world fullscreen gate; server tracks acceptance in `DisclaimerState`
-  (saved data) and suppresses all events until the player accepts.
-- **Horror scheduler** — O(players), no polling. Randomised interval, intensity-scaled.
-- **Day progression** — `DayProgression` ramps intensity to a configurable max day; events gated by
-  `minDay` (sounds d2, signs d3, chat d4, jumpscares/screen/shadow d5, fake players d6, world manip
-  d7, global d10).
-- **Periodic audio** — `scarysounds` every 5-15 min, `iseeyou` (directional) every 10-25 min.
-- **Travel event** — every 120 blocks: one of the travel sounds, with a 10% escalation to the
-  dedicated travel jumpscare (`jumpscare120`), behind the global cooldown.
-- **Adaptive AI** — `BehaviorSampler` feeds decayed signals (look-behind, mining, camping, AFK);
-  vigilance damps how often events fire.
-- **Event framework** — weighted, day-gated `EventRegistry` with ten events: sound illusion, music
-  distort, sign (lightning + localized sign), chat whisper (localized, occasionally corrupted),
-  jumpscare, screen effect, shadow ghost, fake player (renders your own skin), world manipulation
-  (silent door close), rare global event.
+**A strike** teleports it in, plays a sting, inflicts slowness/blindness/nausea, and fires a
+jumpscare — and even then it only **kills 20% of the time** (80% it just scares). So deaths are rare.
 
-## Known limits / honest notes
-- Built and structured for 1.16.5; **not compiled in the authoring environment** (no Forge/Fabric
-  toolchain present) — run `./gradlew build` to verify and report any version-specific fixups.
-- Some per-behaviour adaptive *reactions* from the design (appear behind on AFK, outside windows when
-  camping, near cave mouths when mining) are **sampled but not yet individually wired** into spawn
-  placement — the vigilance damping is. These hook cleanly into `StalkerManager`/`EventRegistry`.
-- "Camera shake / chromatic aberration / motion blur" are realised as cross-loader screen-space
-  overlays (blackout, vignette, glitch); true world-camera distortion needs a per-loader mixin.
-```
+**The watcher group** — after the **5th night**, 3-8 extra nulls stand **50-200 blocks** off and
+stare; 95% peaceful, 5% (18% at night) strike when you approach within 25.
+
+**The event framework** — a weighted, day/night-gated roll once null is present. Sixteen events:
+- **footsteps** approaching from behind, closer and closer, then silence;
+- a whispered **countdown** `<null> 3 … 2 … 1 …` then a jumpscare;
+- a **stranger "joins the game"** then leaves seconds later;
+- **chat whispers** as `<null> …` in white — including, rarely, **your own name**;
+- the **personal sign**: a lightning strike leaves a sign with your **computer name, city and
+  country** and *"yakınındayım"* (or one of 25 ominous one-liners);
+- **world tampering**: a door swings on its own, a block crumbles, a **torch snuffs out**, or a
+  **skull** appears on the ground;
+- random **jumpscares** (10% also shake/resize the OS window, **1% crash the game**);
+- **screen effects** (blackout, vignette, glitch, real **camera shake**);
+- **music distortion**, **shadow ghost**, **fake player** (wearing *your* skin), **sound illusions**,
+  an over-the-shoulder **whisper**, and a rare **global blackout**.
+
+**Set-pieces & escalation**
+- **Mob lock** — every 5 min / 25%, every mob within 4 chunks freezes and stares for 30 s while chat
+  floods (~3 lines/s, corrupted glyphs + hidden hints) and `scary_ambient` loops.
+- **Night assault** — 3%/min at night, nearby mobs turn hostile for ~30-90 s (weak); a mob kill →
+  jumpscare. **From day 10** it's permanent, day *and* night, with triple spawns.
+- **Inventory drop** — from day 4, every 10 min / 15%, null flings your held stack or empties your
+  inventory onto the ground.
+- **Ambient dread** — `travel1/2`, `scary_ambient`, `iseeyou` drift in from random directions; a
+  travel sound every 120 blocks with a 10% escalation to the travel jumpscare.
+
+## Architecture
+- **Cross-loader networking** — one S2C effect channel + C2S control as 1.21 typed payloads, behind
+  `INetworkHelper` (NeoForge `PacketDistributor` / Fabric `ServerPlayNetworking`).
+- **Client presentation** (`ClientHorrorManager`) — fullscreen jumpscares + sound, blackout, vignette,
+  glitch, music silencing, GLFW window-torment; per-loader tick + HUD hooks.
+- **Camera shake** — NeoForge via `ViewportEvent.ComputeCameraAngles`, Fabric via a `Camera` mixin.
+  **Black `null` tab head** — a `PlayerInfo` mixin on both loaders maps the null UUID to
+  `stalker_black.png`.
+- **Server scheduler** — O(players), no polling. Per-player state; per-server managers for null,
+  mob-lock, assault. Deferred multi-step beats run through a per-player `ScheduledAction` queue.
+- **Disclaimer** — once-per-world `SavedData` gate; nothing fires until accepted *and* null has joined.
+- **Config-driven & localised** — every probability/cadence/toggle in `config/adaptivehorror.json`;
+  all in-game text Turkish.
+
+## Notes
+- The 75-175 block far spawn occasionally lands outside the loaded area; the spawn simply retries the
+  next tick until it finds loaded ground (so the 15-60 s gap never stalls).
+- The personal sign's city/country uses a best-effort, time-boxed IP-geolocation lookup on a daemon
+  thread; it fails silently to `?` offline and only ever displays to the player themselves.
+- The 1% jumpscare crash is intentional and rare; disable it (and any feature) in the config.

@@ -288,7 +288,6 @@ public final class StalkerManager {
         state.stalkerBehavior = null;
         state.stalkerAgeTicks = 0;
         state.stalkerLookTicks = 0;
-        state.revealEndTick = 0L;
     }
 
     private static void accountTravel(ServerPlayer player, PlayerHorrorState state) {

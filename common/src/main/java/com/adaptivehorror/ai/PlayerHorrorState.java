@@ -33,9 +33,6 @@ public final class PlayerHorrorState {
     /** Game-time tick before which no new stalker may spawn (the 15-60s gap after one vanishes). */
     public long nextStalkerSpawnTick;
 
-    /** Game-time tick at which a revealed/teleported stalker should vanish (0 = not revealing). */
-    public long revealEndTick;
-
     /** Game-time tick at which a scheduled jumpscare-kill lands (0 = none). */
     public long pendingKillTick;
 
@@ -77,6 +74,10 @@ public final class PlayerHorrorState {
 
     /** Behaviour observations that feed the adaptive AI. */
     public final BehaviorTracker behavior = new BehaviorTracker();
+
+    /** Deferred horror steps (approaching footsteps, countdowns, ...), drained by the scheduler. */
+    public final java.util.List<com.adaptivehorror.scheduler.ScheduledAction> scheduled =
+            new java.util.ArrayList<>();
 
     public PlayerHorrorState(UUID playerId) {
         this.playerId = playerId;
