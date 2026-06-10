@@ -21,24 +21,27 @@ import java.util.Random;
  * Owns the single managed stalker per player: where it spawns (which decides how it is triggered),
  * and what happens when the player triggers it.
  *
- * <p>Placement is contextual and automatic - in front of a sleeping player, at the window of a
- * sheltered player at night, otherwise directly behind or 75-175 blocks out. The stalker stands and
- * watches. When the player triggers it (looks at the behind/window form, or approaches the far form,
- * or wakes from the sleep form) it <b>almost always just vanishes</b>; rarely (config
- * {@code stalkerAttackChance}, 5%) it strikes - teleporting in, a sting, a short hex, and a jumpscare
- * that only kills 20% of the time. The white day form and black night form share all of this.
+ * <p>By day it stands 75-175 blocks off and watches. By night it appears at a sheltered player's
+ * window, directly in front of a sleeping player, or behind/far when out in the open. On trigger -
+ * the player looking at the near forms, or approaching within 25 blocks of any form - it is
+ * <b>95% just vanishes, 5% strikes</b> (teleport in, sting, brief hex, a jumpscare that only kills
+ * 20% of the time). After it vanishes there is a <b>15-60 second gap</b> before the next one appears,
+ * and if the player wanders 200+ blocks away it relocates to a fresh far spot. White by day, black by
+ * night - all automatic.
  */
 public final class StalkerManager {
 
     private static final int STARE_TRIGGER_TICKS = 40;     // 2s of eye contact
     private static final double STARE_LOOK_DOT = 0.975;    // within ~13 degrees
     private static final int KILL_DELAY_TICKS = 20;        // jumpscare, then (maybe) die 1s later
-    private static final int BEHIND_TIMEOUT = 700;         // ~35s ignored -> relocate
-    private static final int WINDOW_TIMEOUT = 700;
-    private static final int FAR_TIMEOUT = 1400;           // ~70s
+    private static final int NEAR_TIMEOUT = 900;           // ~45s ignored -> relocate the near forms
+    private static final int FAR_TIMEOUT = 2400;           // ~120s ignored -> relocate the far form
     private static final int FRONT_SLEEP_TIMEOUT = 400;    // ~20s
     private static final int BEHIND_MIN = 6;
     private static final int BEHIND_MAX = 15;
+    private static final int RESPAWN_MIN_SECONDS = 15;
+    private static final int RESPAWN_MAX_SECONDS = 60;
+    private static final double FOLLOW_DISTANCE = 200.0;    // wander this far -> it relocates near you
 
     private StalkerManager() {
     }
@@ -56,7 +59,9 @@ public final class StalkerManager {
         final ServerLevel level = player.serverLevel();
         final StalkerEntity active = resolveActive(level, state);
         if (active == null) {
-            trySpawn(player, level, state, config, random);
+            if (now >= state.nextStalkerSpawnTick) {          // respect the 15-60s gap
+                trySpawn(player, level, state, config, random);
+            }
             return;
         }
 
@@ -64,33 +69,38 @@ public final class StalkerManager {
         state.stalkerAgeTicks++;
         facePlayer(active, player);
 
+        // If the player wandered far away, the null relocates to a fresh far spot near them.
+        if (player.distanceToSqr(active) > FOLLOW_DISTANCE * FOLLOW_DISTANCE) {
+            relocateFar(player, level, state, config, random);
+            return;
+        }
+
         switch (state.stalkerBehavior == null ? StalkerBehavior.FAR : state.stalkerBehavior) {
             case FRONT_SLEEP -> {
                 if (!player.isSleeping() || state.stalkerAgeTicks > FRONT_SLEEP_TIMEOUT) {
-                    vanish(active, state); // gone the moment they wake
+                    vanish(active, player, state, random);
                 }
             }
             case FAR -> {
                 if (withinVanish(player, active, config)) {
                     triggerReaction(player, active, state, config, random);
-                } else if (state.stalkerAgeTicks > FAR_TIMEOUT
-                        || state.travelSinceRelocate >= config.entity.relocateTravelBlocks) {
-                    relocate(player, level, state, config, random);
+                } else if (state.stalkerAgeTicks > FAR_TIMEOUT) {
+                    relocateFar(player, level, state, config, random);
                 }
             }
             case BEHIND -> {
+                // Vanishes the moment you turn and look at it.
                 if (staring(player, active, state)) {
                     triggerReaction(player, active, state, config, random);
-                } else if (state.stalkerAgeTicks > BEHIND_TIMEOUT) {
-                    relocate(player, level, state, config, random);
+                } else if (state.stalkerAgeTicks > NEAR_TIMEOUT) {
+                    relocateFar(player, level, state, config, random);
                 }
             }
             case WINDOW -> {
                 if (staring(player, active, state) || withinVanish(player, active, config)) {
                     triggerReaction(player, active, state, config, random);
-                } else if (state.stalkerAgeTicks > WINDOW_TIMEOUT
-                        || level.canSeeSky(player.blockPosition())) {
-                    vanish(active, state);
+                } else if (state.stalkerAgeTicks > NEAR_TIMEOUT || level.canSeeSky(player.blockPosition())) {
+                    vanish(active, player, state, random);
                 }
             }
         }
@@ -100,6 +110,7 @@ public final class StalkerManager {
     @Nullable
     public static BlockPos forceSpawn(ServerPlayer player, PlayerHorrorState state, Random random) {
         despawn(player.serverLevel(), state);
+        state.nextStalkerSpawnTick = 0L;
         final BlockPos pos = SpawnLocator.findSpawn(player, random, 12, 28);
         return pos != null && spawnAt(player, player.serverLevel(), state, pos, StalkerBehavior.FAR) ? pos : null;
     }
@@ -146,7 +157,7 @@ public final class StalkerManager {
         if (random.nextDouble() < config.entity.stalkerAttackChance) {
             aggressiveReaction(player, stalker, state, random);
         } else {
-            vanish(stalker, state);
+            vanish(stalker, player, state, random);
         }
     }
 
@@ -160,12 +171,15 @@ public final class StalkerManager {
         player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0, false, false, true));
         player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 100, 0, false, false, true));
         jumpscareAttack(player, state, random);
-        vanish(stalker, state);
+        vanish(stalker, player, state, random);
     }
 
-    private static void vanish(StalkerEntity stalker, PlayerHorrorState state) {
+    /** Removes the stalker and arms the 15-60s gap before the next one may appear. */
+    private static void vanish(StalkerEntity stalker, ServerPlayer player, PlayerHorrorState state, Random random) {
         stalker.discard();
         clear(state);
+        final int seconds = RESPAWN_MIN_SECONDS + random.nextInt(RESPAWN_MAX_SECONDS - RESPAWN_MIN_SECONDS + 1);
+        state.nextStalkerSpawnTick = player.level().getGameTime() + (long) seconds * 20L;
     }
 
     // --- spawning ------------------------------------------------------------------------------
@@ -183,8 +197,11 @@ public final class StalkerManager {
             return;
         }
 
+        final boolean night = !level.isDay();
+        final boolean sheltered = !level.canSeeSky(player.blockPosition());
+
         // Night + sheltered: at the window, just outside.
-        if (!level.isDay() && !level.canSeeSky(player.blockPosition())) {
+        if (night && sheltered) {
             final BlockPos window = SpawnLocator.findSkylit(player, random, 5, 16);
             if (window != null && spawnAt(player, level, state, window, StalkerBehavior.WINDOW)) {
                 HorrorNet.sendSound2D(player, "iseeyou", 0.7F, 1.0F);
@@ -192,18 +209,22 @@ public final class StalkerManager {
             }
         }
 
-        // Otherwise: directly behind, or far off.
-        if (random.nextBoolean()) {
+        // By night out in the open, it may loom directly behind; by day it is always the far watcher.
+        if (night && !sheltered && random.nextBoolean()) {
             final BlockPos behind = SpawnLocator.findBehind(player, random, BEHIND_MIN, BEHIND_MAX);
-            if (behind != null) {
-                spawnAt(player, level, state, behind, StalkerBehavior.BEHIND);
+            if (behind != null && spawnAt(player, level, state, behind, StalkerBehavior.BEHIND)) {
+                return;
             }
-        } else {
-            final BlockPos far = SpawnLocator.findSpawn(player, random,
-                    config.entity.spawnDistanceMin, config.entity.spawnDistanceMax);
-            if (far != null) {
-                spawnAt(player, level, state, far, StalkerBehavior.FAR);
-            }
+        }
+        spawnFar(player, level, state, config, random);
+    }
+
+    private static void spawnFar(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
+                                 HorrorConfig config, Random random) {
+        final BlockPos far = SpawnLocator.findSpawn(player, random,
+                config.entity.spawnDistanceMin, config.entity.spawnDistanceMax);
+        if (far != null) {
+            spawnAt(player, level, state, far, StalkerBehavior.FAR);
         }
     }
 
@@ -227,10 +248,16 @@ public final class StalkerManager {
         return true;
     }
 
-    private static void relocate(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
-                                 HorrorConfig config, Random random) {
-        despawn(level, state);
-        trySpawn(player, level, state, config, random);
+    /** Immediately moves the null to a fresh far spot (no gap) - the "it followed me" relocate. */
+    private static void relocateFar(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
+                                    HorrorConfig config, Random random) {
+        final StalkerEntity active = resolveActive(level, state);
+        if (active != null) {
+            active.discard();
+        }
+        clear(state);
+        state.nextStalkerSpawnTick = 0L;
+        spawnFar(player, level, state, config, random);
     }
 
     // --- helpers -------------------------------------------------------------------------------

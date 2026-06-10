@@ -30,6 +30,9 @@ public final class PlayerHorrorState {
     /** Consecutive ticks the player has been looking at the active stalker (the enderman rule). */
     public int stalkerLookTicks;
 
+    /** Game-time tick before which no new stalker may spawn (the 15-60s gap after one vanishes). */
+    public long nextStalkerSpawnTick;
+
     /** Game-time tick at which a revealed/teleported stalker should vanish (0 = not revealing). */
     public long revealEndTick;
 
