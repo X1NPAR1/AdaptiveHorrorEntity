@@ -95,9 +95,34 @@ public final class SpawnLocator {
     }
 
     private static boolean isValidStanding(Level level, BlockPos pos) {
-        final boolean groundSolid = level.getBlockState(pos.below()).isSolid();
         final boolean feetClear = level.getBlockState(pos).isAir();
         final boolean headClear = level.getBlockState(pos.above()).isAir();
-        return groundSolid && feetClear && headClear;
+        // Solid, non-fluid floor: never on or in water (no spawning inside/under water).
+        final boolean groundSolid = level.getBlockState(pos.below()).isSolid()
+                && level.getBlockState(pos.below()).getFluidState().isEmpty();
+        return feetClear && headClear && groundSolid;
+    }
+
+    /**
+     * A valid standing spot inside a cave near the player's own level (not the distant surface): on
+     * solid non-fluid ground, with head/foot room, enclosed (cannot see sky), within {@code ±6} blocks
+     * of the player's Y. Returns null if none found this call - retry later.
+     */
+    @Nullable
+    public static BlockPos findUnderground(ServerPlayer player, Random random, int minDistance, int maxDistance) {
+        final Level level = player.level();
+        final BlockPos origin = player.blockPosition();
+        for (int attempt = 0; attempt < MAX_ATTEMPTS * 2; attempt++) {
+            final double angle = random.nextDouble() * Math.PI * 2.0;
+            final double dist = minDistance + random.nextDouble() * Math.max(1, maxDistance - minDistance);
+            final int x = origin.getX() + (int) Math.round(Math.cos(angle) * dist);
+            final int z = origin.getZ() + (int) Math.round(Math.sin(angle) * dist);
+            final int y = origin.getY() + random.nextInt(13) - 6; // roughly the player's level
+            final BlockPos pos = new BlockPos(x, y, z);
+            if (level.hasChunkAt(pos) && isValidStanding(level, pos) && !level.canSeeSky(pos)) {
+                return pos;
+            }
+        }
+        return null;
     }
 }

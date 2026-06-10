@@ -30,7 +30,7 @@ public final class WhisperEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 2.0;
+        return ctx.underground ? 4.5 : 2.0; // hallucinations crowd in underground
     }
 
     @Override

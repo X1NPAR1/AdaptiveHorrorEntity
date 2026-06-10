@@ -14,5 +14,7 @@ public enum StalkerBehavior {
     BEHIND,
     FAR,
     WINDOW,
-    FRONT_SLEEP
+    FRONT_SLEEP,
+    /** Underground: spawns in a cave at the player's level, always black, and more aggressive. */
+    CAVE
 }

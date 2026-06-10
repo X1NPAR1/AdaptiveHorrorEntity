@@ -171,7 +171,8 @@ public final class HorrorCommands {
         final HorrorConfig config = ConfigManager.get();
         final int day = DayProgression.dayOf(player.level());
         return new EventContext(player, HorrorScheduler.getOrCreateState(player), config,
-                HorrorScheduler.rng(), day, DayProgression.intensity(day, config));
+                HorrorScheduler.rng(), day, DayProgression.intensity(day, config),
+                com.adaptivehorror.util.Locations.isUnderground(player));
     }
 
     private static void feedback(CommandContext<CommandSourceStack> ctx, String message) {

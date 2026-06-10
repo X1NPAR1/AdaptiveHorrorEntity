@@ -1,6 +1,6 @@
 # Adaptive Horror Entity
 
-**Version 2.7.0** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
+**Version 2.7.1** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
 multi-loader). The design goal is a single, intelligent supernatural presence — *null* — that makes
 the player feel *watched*: tension, doubt and paranoia over cheap jumpscares.
 
@@ -132,6 +132,11 @@ nulls are far more aggressive (5% strike by day → **18% at night**).
 
 **A strike** teleports it in, plays a sting, inflicts slowness/blindness/nausea, and fires a
 jumpscare — and even then it only **kills 20% of the time** (80% it just scares). So deaths are rare.
+
+**Underground** — in caves the stalker is **always black, regardless of the time of day**, spawns at
+**your own level** in a real cave pocket (never on the distant surface, never in water or inside a
+block), is **more aggressive** (30% strike), and the hauntings come **twice as often** — phantom
+block-breaking, snuffed torches and whispers crowd in around you in the dark.
 
 **The watcher group** — after the **5th night**, 3-8 extra nulls stand **50-200 blocks** off and
 stare; 95% peaceful, 5% (18% at night) strike when you approach within 25.

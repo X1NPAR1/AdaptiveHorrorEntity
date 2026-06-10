@@ -40,7 +40,7 @@ public final class SoundIllusionEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 4.0; // common
+        return ctx.underground ? 9.0 : 4.0; // far more phantom noise down in the dark
     }
 
     @Override

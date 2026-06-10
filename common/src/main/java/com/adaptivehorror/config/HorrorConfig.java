@@ -74,9 +74,10 @@ public final class HorrorConfig {
         public int spawnDistanceMax = 175;
         /** When a jumpscare "attack" happens, the chance (0-1) it actually kills (else just scares). */
         public double jumpscareKillChance = 0.20;
-        /** Chance the stalker attacks (vs. vanishing) when triggered - by day, then the higher night value. */
+        /** Chance the stalker attacks (vs. vanishing) when triggered - by day, by night, and underground. */
         public double stalkerAttackChance = 0.05;
         public double stalkerAttackChanceNight = 0.18;
+        public double stalkerAttackChanceUnderground = 0.30;
         /** Chance the {@code iseeyou} whisper plays when a stalker vanishes on approach. */
         public double vanishWhisperChance = 0.10;
         /** Player approaches within this radius -> entity instantly despawns. */

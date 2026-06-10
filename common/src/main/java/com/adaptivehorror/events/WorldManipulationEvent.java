@@ -36,7 +36,7 @@ public final class WorldManipulationEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 0.9;
+        return ctx.underground ? 2.6 : 0.9; // far more block-breaking / torch-snuffing underground
     }
 
     @Override

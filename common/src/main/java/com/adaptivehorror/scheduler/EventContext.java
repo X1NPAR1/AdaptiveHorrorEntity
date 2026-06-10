@@ -24,8 +24,11 @@ public final class EventContext {
     public final int day;
     public final double intensity;
 
+    /** Whether the player is underground - caves get more frequent, more physical hauntings. */
+    public final boolean underground;
+
     public EventContext(ServerPlayer player, PlayerHorrorState state, HorrorConfig config,
-                        Random random, int day, double intensity) {
+                        Random random, int day, double intensity, boolean underground) {
         this.player = player;
         this.level = player.serverLevel();
         this.state = state;
@@ -33,5 +36,6 @@ public final class EventContext {
         this.random = random;
         this.day = day;
         this.intensity = intensity;
+        this.underground = underground;
     }
 }

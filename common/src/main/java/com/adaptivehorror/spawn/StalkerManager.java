@@ -6,6 +6,7 @@ import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.entity.StalkerEntity;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.registry.ModEntities;
+import com.adaptivehorror.util.Locations;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -65,17 +66,26 @@ public final class StalkerManager {
             return;
         }
 
-        active.setNightForm(!level.isDay());
+        final boolean cave = state.stalkerBehavior == StalkerBehavior.CAVE;
+        active.setNightForm(cave || !level.isDay()); // always black underground
         state.stalkerAgeTicks++;
         facePlayer(active, player);
 
-        // If the player wandered far away, the null relocates to a fresh far spot near them.
-        if (player.distanceToSqr(active) > FOLLOW_DISTANCE * FOLLOW_DISTANCE) {
+        // If the player wandered far away, the null relocates to a fresh spot near them. (Not for the
+        // cave form, which stays at the player's level and just vanishes/respawns.)
+        if (!cave && player.distanceToSqr(active) > FOLLOW_DISTANCE * FOLLOW_DISTANCE) {
             relocateFar(player, level, state, config, random);
             return;
         }
 
         switch (state.stalkerBehavior == null ? StalkerBehavior.FAR : state.stalkerBehavior) {
+            case CAVE -> {
+                if (withinVanish(player, active, config) || staring(player, active, state)) {
+                    triggerReaction(player, active, state, config, random);
+                } else if (state.stalkerAgeTicks > NEAR_TIMEOUT) {
+                    vanish(active, player, state, random); // re-appears in the cave after the gap
+                }
+            }
             case FRONT_SLEEP -> {
                 if (!player.isSleeping() || state.stalkerAgeTicks > FRONT_SLEEP_TIMEOUT) {
                     vanish(active, player, state, random);
@@ -151,11 +161,16 @@ public final class StalkerManager {
         return player.distanceToSqr(stalker) <= r * r;
     }
 
-    /** Mostly vanish; strike with the day/night attack chance (night nulls are far more aggressive). */
+    /** Mostly vanish; strike with the day/night/underground attack chance (caves are deadliest). */
     private static void triggerReaction(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
                                         HorrorConfig config, Random random) {
-        final double chance = player.level().isDay()
-                ? config.entity.stalkerAttackChance : config.entity.stalkerAttackChanceNight;
+        final double chance;
+        if (state.stalkerBehavior == StalkerBehavior.CAVE) {
+            chance = config.entity.stalkerAttackChanceUnderground;
+        } else {
+            chance = player.level().isDay()
+                    ? config.entity.stalkerAttackChance : config.entity.stalkerAttackChanceNight;
+        }
         if (random.nextDouble() < chance) {
             aggressiveReaction(player, stalker, state, random);
         } else {
@@ -203,6 +218,15 @@ public final class StalkerManager {
             return;
         }
 
+        // Underground: a black null at the player's own level, inside the cave - never the far surface.
+        if (Locations.isUnderground(player)) {
+            final BlockPos cave = SpawnLocator.findUnderground(player, random, 8, 30);
+            if (cave != null) {
+                spawnAt(player, level, state, cave, StalkerBehavior.CAVE);
+            }
+            return;
+        }
+
         final boolean night = !level.isDay();
         final boolean sheltered = !level.canSeeSky(player.blockPosition());
 
@@ -242,7 +266,7 @@ public final class StalkerManager {
             return false;
         }
         stalker.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
-        stalker.setNightForm(!level.isDay());
+        stalker.setNightForm(placement == StalkerBehavior.CAVE || !level.isDay());
         facePlayer(stalker, player);
         if (!level.addFreshEntity(stalker)) {
             return false;
