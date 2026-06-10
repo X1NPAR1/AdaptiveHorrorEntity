@@ -74,8 +74,11 @@ public final class HorrorConfig {
         public int spawnDistanceMax = 175;
         /** When a jumpscare "attack" happens, the chance (0-1) it actually kills (else just scares). */
         public double jumpscareKillChance = 0.20;
-        /** When the stalker is triggered (looked at / approached), chance it attacks instead of vanishing. */
+        /** Chance the stalker attacks (vs. vanishing) when triggered - by day, then the higher night value. */
         public double stalkerAttackChance = 0.05;
+        public double stalkerAttackChanceNight = 0.18;
+        /** Chance the {@code iseeyou} whisper plays when a stalker vanishes on approach. */
+        public double vanishWhisperChance = 0.10;
         /** Player approaches within this radius -> entity instantly despawns. */
         public int despawnTriggerRadius = 25;
         /** Player travels this far -> current entity despawns and re-spawns elsewhere. */
@@ -160,7 +163,8 @@ public final class HorrorConfig {
         public int distanceMin = 50;
         public int distanceMax = 200;
         public int vanishRadius = 25;       // vanish (or strike) once the player is this close
-        public double attackChance = 0.05;  // chance a watcher strikes instead of vanishing
+        public double attackChance = 0.05;  // chance a watcher strikes (day); night uses the higher value
+        public double attackChanceNight = 0.18;
     }
 
     public final InventoryDrop inventoryDrop = new InventoryDrop();

@@ -50,7 +50,8 @@ public final class WatcherManager {
             facePlayer(watcher, player);
 
             if (player.distanceToSqr(watcher) <= (double) cfg.vanishRadius * cfg.vanishRadius) {
-                if (random.nextDouble() < cfg.attackChance) {
+                final double chance = player.level().isDay() ? cfg.attackChance : cfg.attackChanceNight;
+                if (random.nextDouble() < chance) {
                     StalkerManager.jumpscareAttack(player, state, random); // 80% scare, 20% kill
                 }
                 watcher.discard();

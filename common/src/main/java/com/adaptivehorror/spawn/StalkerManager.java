@@ -89,8 +89,8 @@ public final class StalkerManager {
                 }
             }
             case BEHIND -> {
-                // Vanishes the moment you turn and look at it.
-                if (staring(player, active, state)) {
+                // Vanishes the moment you turn and look at it - or if you back right into it.
+                if (staring(player, active, state) || player.distanceToSqr(active) <= 25.0) {
                     triggerReaction(player, active, state, config, random);
                 } else if (state.stalkerAgeTicks > NEAR_TIMEOUT) {
                     relocateFar(player, level, state, config, random);
@@ -151,12 +151,17 @@ public final class StalkerManager {
         return player.distanceToSqr(stalker) <= r * r;
     }
 
-    /** 95% just vanish; 5% strike. */
+    /** Mostly vanish; strike with the day/night attack chance (night nulls are far more aggressive). */
     private static void triggerReaction(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
                                         HorrorConfig config, Random random) {
-        if (random.nextDouble() < config.entity.stalkerAttackChance) {
+        final double chance = player.level().isDay()
+                ? config.entity.stalkerAttackChance : config.entity.stalkerAttackChanceNight;
+        if (random.nextDouble() < chance) {
             aggressiveReaction(player, stalker, state, random);
         } else {
+            if (random.nextDouble() < config.entity.vanishWhisperChance) {
+                HorrorNet.sendSound2D(player, "iseeyou", 0.8F, 1.0F); // only 10% of the time
+            }
             vanish(stalker, player, state, random);
         }
     }
@@ -192,6 +197,7 @@ public final class StalkerManager {
                 final Vec3 front = frontOf(player, 2.5);
                 if (spawnAt(player, level, state, BlockPos.containing(front), StalkerBehavior.FRONT_SLEEP)) {
                     HorrorNet.sendSound2D(player, "iseeyou", 0.9F, 1.0F);
+                    HorrorNet.sendVignettePulse(player, 25);
                 }
             }
             return;
@@ -200,11 +206,11 @@ public final class StalkerManager {
         final boolean night = !level.isDay();
         final boolean sheltered = !level.canSeeSky(player.blockPosition());
 
-        // Night + sheltered: at the window, just outside.
+        // Night + sheltered: at the window, just outside. A silent vignette sells "being watched".
         if (night && sheltered) {
             final BlockPos window = SpawnLocator.findSkylit(player, random, 5, 16);
             if (window != null && spawnAt(player, level, state, window, StalkerBehavior.WINDOW)) {
-                HorrorNet.sendSound2D(player, "iseeyou", 0.7F, 1.0F);
+                HorrorNet.sendVignettePulse(player, 20);
                 return;
             }
         }
@@ -213,6 +219,7 @@ public final class StalkerManager {
         if (night && !sheltered && random.nextBoolean()) {
             final BlockPos behind = SpawnLocator.findBehind(player, random, BEHIND_MIN, BEHIND_MAX);
             if (behind != null && spawnAt(player, level, state, behind, StalkerBehavior.BEHIND)) {
+                HorrorNet.sendVignettePulse(player, 18);
                 return;
             }
         }

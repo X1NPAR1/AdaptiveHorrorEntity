@@ -80,9 +80,15 @@ public final class ClientHorrorManager {
 
     public void playSound2D(String path, float volume, float pitch) {
         final SoundEvent sound = lookup(path);
-        if (sound != null) {
-            mc.getSoundManager().play(SimpleSoundInstance.forUI(sound, pitch, volume));
+        if (sound == null || mc.player == null) {
+            return;
         }
+        // Play at the listener's own position with the MASTER source. This is the same code path the
+        // (working) positional ambient sounds use; SimpleSoundInstance.forUI proved unreliable for the
+        // jumpscare stings, which is why they often came through silent.
+        final Vec3 p = mc.player.position();
+        mc.getSoundManager().play(new SimpleSoundInstance(
+                sound, SoundSource.MASTER, volume, pitch, RandomSource.create(), p.x, p.y, p.z));
     }
 
     public void playSoundAt(String path, Vec3 pos, float volume, float pitch) {
