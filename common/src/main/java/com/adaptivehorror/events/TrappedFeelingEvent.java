@@ -32,7 +32,7 @@ public final class TrappedFeelingEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 0.9;
+        return (ctx.level.isDay() && !ctx.underground) ? 0.0 : 0.9; // night / underground only
     }
 
     @Override

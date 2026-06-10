@@ -43,26 +43,45 @@ public final class WorldManipulationEvent implements HorrorEvent {
         return ctx.underground ? 2.6 : 0.9; // far more block-breaking / torch-snuffing underground
     }
 
+    /** How many tampers fire in one burst, and the gap between them. */
+    private static final int BURST_COUNT = 10;
+    private static final long BURST_GAP_TICKS = 6L; // ~0.3s
+
     @Override
     public void execute(EventContext ctx) {
-        switch (ctx.random.nextInt(5)) {
+        // A burst: ten tampers in a row over a few seconds - a sustained "the house is alive" storm.
+        final long start = ctx.level.getGameTime();
+        tamperOnce(ctx);
+        for (int i = 1; i < BURST_COUNT; i++) {
+            ctx.state.scheduled.add(new ScheduledAction(start + i * BURST_GAP_TICKS, () -> tamperOnce(ctx)));
+        }
+    }
+
+    private static void tamperOnce(EventContext ctx) {
+        // Block-breaking is the rarest outcome (1/6) so a burst never razes a base.
+        switch (ctx.random.nextInt(6)) {
             case 0 -> {
                 if (!toggleNearestDoor(ctx)) {
-                    breakRandomBlock(ctx);
+                    placeSkull(ctx);
                 }
             }
-            case 1 -> breakRandomBlock(ctx);
-            case 2 -> {
+            case 1 -> {
                 if (!snuffNearestTorch(ctx)) {
-                    breakRandomBlock(ctx);
+                    placeSkull(ctx);
                 }
             }
-            case 3 -> {
+            case 2 -> {
                 if (!hauntDoorLoop(ctx)) { // the door that won't stop swinging
-                    breakRandomBlock(ctx);
+                    placeSkull(ctx);
                 }
             }
-            default -> placeSkull(ctx);
+            case 3 -> breakRandomBlock(ctx);
+            default -> {
+                // Prefer a door/torch beat (indoors); only leave a skull when there's none nearby.
+                if (!toggleNearestDoor(ctx) && !snuffNearestTorch(ctx)) {
+                    placeSkull(ctx);
+                }
+            }
         }
     }
 

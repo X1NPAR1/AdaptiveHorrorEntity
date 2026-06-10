@@ -25,6 +25,20 @@ public final class ChatMessageEvent implements HorrorEvent {
             "adaptivehorror.chat.why"
     };
 
+    /** Forty additional whispers, kept inline (the mod's chat is Turkish by design). */
+    private static final String[] LINES = {
+            "neredesin", "seni buldum", "kapını çaldım", "duydun mu beni", "yaklaşıyorum",
+            "arkana bakma", "ışıkları açık bırak", "uyuduğunda geleceğim", "seni izliyorum hâlâ",
+            "bu gece olmaz", "yalnız mısın", "kapıyı kilitle", "perdeyi kapatma",
+            "seni göremiyorum ama buradayım", "nefes alma", "sessiz ol", "onlar geldi",
+            "biz çoğuz", "geri dön", "evine git", "burada kal", "çok geç oldu",
+            "beni unutma", "hatırlıyor musun", "adını biliyorum", "yüzünü gördüm",
+            "tam arkandayım", "pencereye bakma", "tavana bak", "zeminin altındayım",
+            "yatağının yanındayım", "elini ver", "benimle gel", "acıktım",
+            "daha yakına gel", "oyun bitti", "sıra sende", "son kez gülümse",
+            "kaçamazsın", "seni hep izledim"
+    };
+
     @Override
     public String id() {
         return "chat";
@@ -47,9 +61,15 @@ public final class ChatMessageEvent implements HorrorEvent {
 
     @Override
     public void execute(EventContext ctx) {
-        final Component message = ctx.random.nextFloat() < 0.25F
-                ? Component.literal(ctx.player.getGameProfile().getName())   // it knows your name
-                : Component.translatable(KEYS[ctx.random.nextInt(KEYS.length)]);
+        final float roll = ctx.random.nextFloat();
+        final Component message;
+        if (roll < 0.12F) {
+            message = Component.literal(ctx.player.getGameProfile().getName());        // it knows your name
+        } else if (roll < 0.45F) {
+            message = Component.translatable(KEYS[ctx.random.nextInt(KEYS.length)]);   // localised classics
+        } else {
+            message = Component.literal(LINES[ctx.random.nextInt(LINES.length)]);      // the wider whisper pool
+        }
         sendNullChat(ctx.player, message);
     }
 

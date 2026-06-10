@@ -34,15 +34,17 @@ public final class HorrorConfig {
     public static final class Null {
         public boolean enabled = true;
         public String name = "null";
-        /** Delay bounds (seconds) after disclaimer acceptance before null joins (then it's automatic). */
-        public int joinDelayMinSeconds = 90;
-        public int joinDelayMaxSeconds = 210;
-        /** How long null stays before it occasionally "leaves the server" (seconds, 5-15 min). */
+        /** Delay bounds (seconds) after disclaimer acceptance before null joins (1-3 min). */
+        public int joinDelayMinSeconds = 60;
+        public int joinDelayMaxSeconds = 180;
+        /** How long null stays before it considers leaving (seconds). It only ever leaves in daylight. */
         public int presentMinSeconds = 300;
-        public int presentMaxSeconds = 900;
-        /** How long it stays away before rejoining (seconds, 2-10 min). */
-        public int awayMinSeconds = 120;
-        public int awayMaxSeconds = 600;
+        public int presentMaxSeconds = 600;
+        /** How long it stays away before rejoining (seconds, 4-5 min - it leaves at dawn, returns later). */
+        public int awayMinSeconds = 240;
+        public int awayMaxSeconds = 300;
+        /** From this in-game day on, null never leaves again - the presence becomes permanent. */
+        public int stayForeverFromDay = 5;
         /**
          * Optional skin for the tab-list head. {@code textureValue} is the base64 "textures" property
          * value and {@code textureSignature} its signature (may be empty for unsigned). Leave blank to
@@ -100,13 +102,20 @@ public final class HorrorConfig {
         public int effectDurationSecondsMax = 5;
         /** Seconds of being AFK after which the entity may appear directly behind the player. */
         public int afkAppearSeconds = 180;
-        /** Chance (0-1) per check to appear beside a sleeping player's bed. */
-        public double sleepAppearChance = 0.05;
+        /** Chance (0-1) that lying down summons the harmless 2s apparition at the foot of the bed. */
+        public double sleepAppearChance = 0.20;
     }
 
     /** Horror scheduler cadence. The scheduler decides WHEN events may fire; intensity decides which. */
     public static final class Scheduler {
-        /** Base interval bounds, in seconds, between scheduler "ticks" that may roll an event. */
+        /**
+         * The main event roll runs on a fixed clock: every {@code eventIntervalSeconds} there is an
+         * {@code eventChance} roll to fire one weighted event (halved interval underground - twice as
+         * often in caves). Replaces the old intensity-scaled interval so cadence is predictable.
+         */
+        public int eventIntervalSeconds = 60;   // try once a minute
+        public double eventChance = 0.25;        // 25% each try
+        /** Legacy interval bounds (kept for config compatibility; no longer drives the main roll). */
         public int baseIntervalSecondsMin = 45;
         public int baseIntervalSecondsMax = 120;
         /** Distance, in blocks of horizontal travel, between the recurring "120-block" sound event. */
@@ -205,12 +214,19 @@ public final class HorrorConfig {
 
     public final InventoryDrop inventoryDrop = new InventoryDrop();
 
-    /** From {@code minDay} on, null periodically tries to make the player drop their items. */
+    /**
+     * From {@code minDay} on, null periodically tries to make the player drop their items. The chance
+     * is context-sensitive: low normally, higher the deeper and more dangerous the player's position -
+     * the entity strikes when a dropped inventory hurts most (near lava, deep underground).
+     */
     public static final class InventoryDrop {
         public boolean enabled = true;
-        public int minDay = 4;
-        public int intervalSeconds = 600;   // try every 10 minutes
-        public double chance = 0.15;        // 15% per try
+        public int minDay = 3;
+        public int intervalSeconds = 180;        // try every 3 minutes
+        public double chance = 0.03;             // base chance on the surface
+        public double chanceBelowZero = 0.10;    // 10% when below Y=0
+        public double chanceNearLava = 0.05;     // 5% when within a few blocks of lava (overrides if higher)
+        public int lavaSearchRadius = 4;
     }
 
     public final MobLock mobLock = new MobLock();

@@ -143,14 +143,17 @@ public final class HorrorScheduler {
         final long now = player.level().getGameTime();
         final boolean underground = com.adaptivehorror.util.Locations.isUnderground(player);
         if (state.nextSchedulerTick == 0L) {
-            state.nextSchedulerTick = scheduleNext(now, config, intensity, underground);
+            state.nextSchedulerTick = scheduleNext(now, config, underground);
             return;
         }
         if (now < state.nextSchedulerTick) {
             return;
         }
-        EventRegistry.maybeRunOne(new EventContext(player, state, config, RNG, day, intensity, underground));
-        state.nextSchedulerTick = scheduleNext(now, config, intensity, underground);
+        state.nextSchedulerTick = scheduleNext(now, config, underground);
+        // Fixed cadence: a single 25% roll each interval. Intensity no longer gates this clock.
+        if (RNG.nextDouble() < config.scheduler.eventChance) {
+            EventRegistry.maybeRunOne(new EventContext(player, state, config, RNG, day, intensity, underground));
+        }
     }
 
     /**
@@ -183,18 +186,11 @@ public final class HorrorScheduler {
         }
     }
 
-    /** Randomised interval, shortened as intensity rises and again when underground (more frequent). */
-    private static long scheduleNext(long now, HorrorConfig config, double intensity, boolean underground) {
-        final int min = config.scheduler.baseIntervalSecondsMin;
-        final int max = config.scheduler.baseIntervalSecondsMax;
-        final int span = Math.max(1, max - min);
-        final double scale = 1.0 / Math.max(0.25, intensity);
-        final double caveFactor = underground ? 0.55 : 1.0; // caves haunt ~2x as often
-        // Cap the silence so the world always feels haunted: an event at least every 60s underground,
-        // every 120s on the surface (the design's "1 min cave / 2 min surface" cadence).
-        final long cap = underground ? 60L : 120L;
-        final long seconds = Math.min(cap, (long) ((min + RNG.nextInt(span)) * scale * caveFactor));
-        return now + Math.max(20L, seconds * 20L);
+    /** Fixed cadence: every {@code eventIntervalSeconds} (halved underground - caves try twice as often). */
+    private static long scheduleNext(long now, HorrorConfig config, boolean underground) {
+        final int secs = underground ? Math.max(10, config.scheduler.eventIntervalSeconds / 2)
+                : config.scheduler.eventIntervalSeconds;
+        return now + (long) secs * 20L;
     }
 
     // --- travel-distance event -----------------------------------------------------------------

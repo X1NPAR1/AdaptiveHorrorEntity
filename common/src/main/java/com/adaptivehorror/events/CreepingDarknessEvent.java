@@ -31,6 +31,9 @@ public final class CreepingDarknessEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
+        if (ctx.level.isDay() && !ctx.underground) {
+            return 0.0; // the dark closes in only at night / underground
+        }
         return ctx.underground ? 2.0 : 1.3;
     }
 

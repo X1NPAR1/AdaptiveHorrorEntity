@@ -3,7 +3,9 @@ package com.adaptivehorror.event;
 import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.scheduler.DayProgression;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.material.FluidState;
 
 import java.util.Random;
 
@@ -33,7 +35,15 @@ public final class InventoryDropManager {
         }
         state.nextInventoryDropTick = now + (long) cfg.intervalSeconds * 20L;
 
-        if (random.nextDouble() >= cfg.chance) {
+        // Context-sensitive chance: it strikes when a dropped inventory hurts most.
+        double chance = cfg.chance;
+        if (player.getY() < 0.0) {
+            chance = Math.max(chance, cfg.chanceBelowZero);   // deep underground - 10%
+        }
+        if (nearLava(player, cfg.lavaSearchRadius)) {
+            chance = Math.max(chance, cfg.chanceNearLava);    // next to lava - the cruelest moment
+        }
+        if (random.nextDouble() >= chance) {
             return;
         }
         if (random.nextBoolean()) {
@@ -41,5 +51,18 @@ public final class InventoryDropManager {
         } else {
             player.getInventory().dropAll(); // everything spills onto the ground
         }
+    }
+
+    /** True if there is any lava within {@code radius} blocks of the player (cheap bounded scan). */
+    private static boolean nearLava(ServerPlayer player, int radius) {
+        final BlockPos origin = player.blockPosition();
+        for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-radius, -radius, -radius),
+                origin.offset(radius, radius, radius))) {
+            final FluidState fluid = player.level().getFluidState(pos);
+            if (!fluid.isEmpty() && fluid.is(net.minecraft.tags.FluidTags.LAVA)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

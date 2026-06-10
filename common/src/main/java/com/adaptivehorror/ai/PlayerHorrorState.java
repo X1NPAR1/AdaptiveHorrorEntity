@@ -42,6 +42,9 @@ public final class PlayerHorrorState {
     /** This null is the black, more-aggressive form even though it spawned in daylight. */
     public boolean stalkerBlack;
 
+    /** Whether the once-per-sleep bed apparition has already been rolled this sleep session. */
+    public boolean sleepApparitionRolled;
+
     /** Game-time tick at which a scheduled jumpscare-kill lands (0 = none). */
     public long pendingKillTick;
 

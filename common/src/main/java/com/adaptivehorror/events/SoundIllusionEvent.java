@@ -4,6 +4,7 @@ import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.scheduler.EventContext;
 import com.adaptivehorror.scheduler.HorrorEvent;
+import com.adaptivehorror.scheduler.ScheduledAction;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -43,8 +44,23 @@ public final class SoundIllusionEvent implements HorrorEvent {
         return ctx.underground ? 9.0 : 4.0; // far more phantom noise down in the dark
     }
 
+    /** Five phantom sounds in a row, half a second apart - a crowd of noises closing in. */
+    private static final int BURST_COUNT = 5;
+    private static final long BURST_GAP_TICKS = 10L; // 0.5s
+
     @Override
     public void execute(EventContext ctx) {
+        final long start = ctx.level.getGameTime();
+        for (int i = 0; i < BURST_COUNT; i++) {
+            if (i == 0) {
+                oneIllusion(ctx);
+            } else {
+                ctx.state.scheduled.add(new ScheduledAction(start + i * BURST_GAP_TICKS, () -> oneIllusion(ctx)));
+            }
+        }
+    }
+
+    private static void oneIllusion(EventContext ctx) {
         final String sound = SOUNDS[ctx.random.nextInt(SOUNDS.length)];
         final double angle = ctx.random.nextDouble() * Math.PI * 2.0;
         final double dist = 3.0 + ctx.random.nextDouble() * 6.0;

@@ -31,7 +31,11 @@ public final class ForcedLookEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return ctx.underground ? 1.2 : 0.7; // a touch more likely in the close dark
+        // Night-only (or underground dark) - the forced look belongs to the dark.
+        if (ctx.level.isDay() && !ctx.underground) {
+            return 0.0;
+        }
+        return ctx.underground ? 1.2 : 0.7;
     }
 
     @Override

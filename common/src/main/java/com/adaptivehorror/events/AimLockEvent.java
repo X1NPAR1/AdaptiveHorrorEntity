@@ -52,7 +52,8 @@ public final class AimLockEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 0.4; // rare set-piece
+        // Night-only set-piece (also counts the dark underground).
+        return (ctx.level.isDay() && !ctx.underground) ? 0.0 : 0.4;
     }
 
     @Override

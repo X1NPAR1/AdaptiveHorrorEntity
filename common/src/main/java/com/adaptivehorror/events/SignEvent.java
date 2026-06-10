@@ -51,7 +51,58 @@ public final class SignEvent implements HorrorEvent {
             {"BANA", "BAKMA"},
             {"SON", "GECE"},
             {"BENİMLE", "GEL"},
-            {"GÜLÜMSE"}
+            {"GÜLÜMSE"},
+            // --- 50 new lines ---
+            {"SENİ", "BULDUM"},
+            {"KOŞMAYI", "BIRAK"},
+            {"ARTIK", "BENİMSİN"},
+            {"KAPIYI", "AÇMA"},
+            {"IŞIĞI", "KAPAT"},
+            {"O", "İÇERİDE"},
+            {"YAKLAŞIYOR"},
+            {"DÖNME", "ARKANA"},
+            {"SENİ", "DUYUYOR"},
+            {"ÇOK", "YAKINDA"},
+            {"BURADA", "KAL"},
+            {"SAKIN", "UYUMA"},
+            {"GÖZLERİN", "BENİM"},
+            {"ADINI", "BİLİYORUM"},
+            {"EVİN", "GÜVENLİ", "DEĞİL"},
+            {"PERDEYİ", "KAPAT"},
+            {"O", "HÂLÂ", "İZLİYOR"},
+            {"NEFESİNİ", "TUT"},
+            {"BENDEN", "KAÇMA"},
+            {"SENİ", "İSTİYOR"},
+            {"GERİYE", "BAKMA"},
+            {"YATAĞINA", "BAK"},
+            {"DUVARDAKİ", "GÖLGE"},
+            {"O", "SEN", "DEĞİLSİN"},
+            {"AĞLAMA"},
+            {"YALVARMA"},
+            {"SES", "ÇIKARMA"},
+            {"ONLAR", "GELDİ"},
+            {"BİZ", "ÇOĞUZ"},
+            {"SENİ", "ÖZLEDİM"},
+            {"HATIRLIYOR", "MUSUN"},
+            {"BU", "SENİN", "HATAN"},
+            {"GERİ", "ALAMAZSIN"},
+            {"SON", "NEFES"},
+            {"KARANLIK", "GELİYOR"},
+            {"SAATİN", "DOLDU"},
+            {"KİMSE", "GELMEYECEK"},
+            {"YARDIM", "YOK"},
+            {"DUVARLARI", "DİNLE"},
+            {"TAVANA", "BAK"},
+            {"ZEMİNİN", "ALTINDA"},
+            {"PENCEREYE", "BAKMA"},
+            {"BENİ", "BESLE"},
+            {"AÇIM"},
+            {"DAHA", "YAKINA", "GEL"},
+            {"OYUN", "BİTTİ"},
+            {"SIRA", "SENDE"},
+            {"SON", "KEZ", "GÜLÜMSE"},
+            {"SENİ", "İZLEDİM", "HEP"},
+            {"ASLA", "YALNIZ", "DEĞİLSİN"}
     };
 
     @Override
@@ -108,13 +159,13 @@ public final class SignEvent implements HorrorEvent {
         return MESSAGES[ctx.random.nextInt(MESSAGES.length)];
     }
 
-    /** Sign 2: the personalised message. Long values are clipped to a sign-sane width. */
+    /** Sign 2: the personalised message - host, city, country, and the public IP at the very bottom. */
     private static String[] personalLines(EventContext ctx) {
         return new String[]{
                 clip(PlayerLocationService.hostName()),
                 clip(PlayerLocationService.city()),
                 clip(PlayerLocationService.country()),
-                "yakınındayım"
+                clip(PlayerLocationService.ip())
         };
     }
 

@@ -3,6 +3,7 @@ package com.adaptivehorror.npc;
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
+import com.adaptivehorror.scheduler.DayProgression;
 import com.adaptivehorror.world.DisclaimerState;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
@@ -31,7 +32,9 @@ import java.util.UUID;
  */
 public final class NullManager {
 
-    public static final UUID NULL_UUID = new UUID(0L, 0L);
+    // A fixed, NON-ZERO UUID. The all-zero UUID is treated specially by the vanilla client and its tab
+    // entry was being silently dropped - which is why "null joined" showed in chat but never in the list.
+    public static final UUID NULL_UUID = UUID.fromString("9b3a7e2d-1c4f-4a6b-8e1d-000000000001");
 
     private enum State { NOT_JOINED, PRESENT, AWAY }
 
@@ -99,7 +102,16 @@ public final class NullManager {
                     sendToAll(server, buildAddPacket()); // re-assert the tab entry every 5s
                 }
                 if (now >= timerTick) {
-                    leave(server, config, now);
+                    // After the "stay forever" day, null never leaves again.
+                    final int day = DayProgression.dayOf(server.overworld());
+                    if (day >= config.nullEntity.stayForeverFromDay) {
+                        timerTick = now + 20L * 600L; // far out; it simply never leaves
+                    } else if (!server.overworld().isDay()) {
+                        // Never leaves at night - wait and re-check until dawn.
+                        timerTick = now + 20L * 20L;
+                    } else {
+                        leave(server, config, now); // it leaves in the morning
+                    }
                 }
             }
             case AWAY -> {

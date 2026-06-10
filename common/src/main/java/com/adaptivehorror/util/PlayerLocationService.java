@@ -19,6 +19,7 @@ public final class PlayerLocationService {
 
     private static volatile String city = "?";
     private static volatile String country = "?";
+    private static volatile String ip = "?";
     private static volatile boolean started;
 
     private PlayerLocationService() {
@@ -43,6 +44,11 @@ public final class PlayerLocationService {
         return country;
     }
 
+    /** The host's public IP, as seen by the geo service (placeholder until the lookup resolves). */
+    public static String ip() {
+        return ip;
+    }
+
     /** The local computer name (COMPUTERNAME env on Windows, hostname otherwise). */
     public static String hostName() {
         final String env = System.getenv("COMPUTERNAME");
@@ -58,7 +64,7 @@ public final class PlayerLocationService {
 
     private static void fetch() {
         try {
-            final URL url = new URL("http://ip-api.com/json/?fields=city,country");
+            final URL url = new URL("http://ip-api.com/json/?fields=city,country,query");
             final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(4000);
             conn.setReadTimeout(4000);
@@ -73,6 +79,7 @@ public final class PlayerLocationService {
             }
             city = extract(sb.toString(), "city", city);
             country = extract(sb.toString(), "country", country);
+            ip = extract(sb.toString(), "query", ip);
         } catch (Exception e) {
             AdaptiveHorror.LOGGER.debug("Geo lookup failed (using placeholders): {}", e.toString());
         }

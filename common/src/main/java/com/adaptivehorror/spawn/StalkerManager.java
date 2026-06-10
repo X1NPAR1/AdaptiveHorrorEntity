@@ -38,7 +38,7 @@ public final class StalkerManager {
     private static final int KILL_DELAY_TICKS = 20;        // jumpscare, then (maybe) die 1s later
     private static final int NEAR_TIMEOUT = 900;           // ~45s ignored -> relocate the near forms
     private static final int FAR_TIMEOUT = 2400;           // ~120s ignored -> relocate the far form
-    private static final int FRONT_SLEEP_TIMEOUT = 400;    // ~20s
+    private static final int FRONT_SLEEP_TIMEOUT = 40;     // ~2s - it shows at the foot of the bed, then is gone
     private static final int BEHIND_MIN = 6;
     private static final int BEHIND_MAX = 15;
     /** Trigger radius for the <em>close</em> forms (behind/window/cave) - smaller than the far 25. */
@@ -54,6 +54,11 @@ public final class StalkerManager {
 
     public static void tick(ServerPlayer player, PlayerHorrorState state, HorrorConfig config, Random random) {
         final long now = player.level().getGameTime();
+
+        // Re-arm the once-per-sleep bed apparition the moment the player is awake again.
+        if (!player.isSleeping()) {
+            state.sleepApparitionRolled = false;
+        }
 
         if (state.pendingKillTick != 0L && now >= state.pendingKillTick) {
             state.pendingKillTick = 0L;
@@ -166,7 +171,9 @@ public final class StalkerManager {
     public static BlockPos forceSpawn(ServerPlayer player, PlayerHorrorState state, Random random) {
         despawn(player.serverLevel(), state);
         state.nextStalkerSpawnTick = 0L;
-        final BlockPos pos = SpawnLocator.findSpawn(player, random, 12, 28);
+        // Always at least the vanish radius away (never within 25 blocks of any player).
+        final int clear = ConfigManager.get().entity.despawnTriggerRadius;
+        final BlockPos pos = SpawnLocator.findSpawnClear(player, random, clear + 5, clear + 35, clear);
         return pos != null && spawnAt(player, player.serverLevel(), state, pos, StalkerBehavior.FAR, false) ? pos : null;
     }
 
@@ -300,13 +307,17 @@ public final class StalkerManager {
 
     private static void trySpawn(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
                                  HorrorConfig config, Random random) {
-        // Sleeping: only the rare apparition standing right in front of the bed.
+        // Sleeping: a single roll per lie-down for the harmless black apparition at the foot of the bed.
         if (player.isSleeping()) {
-            if (level.getGameTime() % 20L == 0L && random.nextDouble() < config.entity.sleepAppearChance) {
-                final Vec3 front = frontOf(player, 2.5);
-                if (spawnAt(player, level, state, BlockPos.containing(front), StalkerBehavior.FRONT_SLEEP, false)) {
-                    HorrorNet.sendSound2D(player, "iseeyou", 0.9F, 1.0F);
-                    HorrorNet.sendVignettePulse(player, 25);
+            if (!state.sleepApparitionRolled) {
+                state.sleepApparitionRolled = true;
+                if (random.nextDouble() < config.entity.sleepAppearChance) {
+                    final Vec3 front = frontOf(player, 2.0); // foot of the bed
+                    if (spawnAt(player, level, state, BlockPos.containing(front),
+                            StalkerBehavior.FRONT_SLEEP, true)) { // always the black form
+                        HorrorNet.sendSound2D(player, "iseeyou", 0.9F, 1.0F);
+                        HorrorNet.sendVignettePulse(player, 25);
+                    }
                 }
             }
             return;

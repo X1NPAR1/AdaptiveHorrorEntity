@@ -32,6 +32,9 @@ public final class UnseenHunterEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
+        if (ctx.level.isDay() && !ctx.underground) {
+            return 0.0; // the hunt comes at night
+        }
         return ctx.underground ? 1.6 : 1.0;
     }
 
