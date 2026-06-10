@@ -6,9 +6,25 @@ import com.adaptivehorror.events.CountdownEvent;
 import com.adaptivehorror.events.FakeJoinEvent;
 import com.adaptivehorror.events.FakePlayerEvent;
 import com.adaptivehorror.events.AimLockEvent;
+import com.adaptivehorror.events.BloodScreenEvent;
+import com.adaptivehorror.events.CirclingFootstepsEvent;
+import com.adaptivehorror.events.ColdPresenceEvent;
+import com.adaptivehorror.events.CreepingDarknessEvent;
+import com.adaptivehorror.events.DistantScreamEvent;
+import com.adaptivehorror.events.NullBreathingEvent;
+import com.adaptivehorror.events.PhantomExplosionEvent;
+import com.adaptivehorror.events.SurroundWhispersEvent;
+import com.adaptivehorror.events.TrappedFeelingEvent;
+import com.adaptivehorror.events.UnseenHunterEvent;
 import com.adaptivehorror.events.FootstepStalkEvent;
 import com.adaptivehorror.events.ForcedLookEvent;
 import com.adaptivehorror.events.GlobalEvent;
+import com.adaptivehorror.events.HeartbeatEvent;
+import com.adaptivehorror.events.LightsFlickerEvent;
+import com.adaptivehorror.events.MobRenameEvent;
+import com.adaptivehorror.events.NullPeekEvent;
+import com.adaptivehorror.events.PhantomMiningEvent;
+import com.adaptivehorror.events.SuddenSilenceEvent;
 import com.adaptivehorror.events.JumpscareEvent;
 import com.adaptivehorror.events.MusicDistortEvent;
 import com.adaptivehorror.events.ScreenEffectEvent;
@@ -51,6 +67,23 @@ public final class EventRegistry {
         register(new ForcedLookEvent());        // day 4+ (forced look + shake)
         register(new AimLockEvent());           // day 6+ (aim-lock ritual)
         register(new GlobalEvent());            // day 10+ (rare)
+        // --- new paranoia beats -----------------------------------------------------------------
+        register(new HeartbeatEvent());         // day 2+ (rising heartbeat)
+        register(new ColdPresenceEvent());      // day 2+ (a cold something passes through)
+        register(new CirclingFootstepsEvent()); // day 2+ (footsteps circle you)
+        register(new DistantScreamEvent());     // day 3+ (a scream, far off)
+        register(new LightsFlickerEvent());     // day 3+ (the lights fail)
+        register(new NullPeekEvent());          // day 3+ (a null peeks and is gone)
+        register(new PhantomMiningEvent());     // day 1+ underground (digging toward you)
+        register(new MobRenameEvent());         // day 4+ (a mob wears your name)
+        register(new SuddenSilenceEvent());     // day 4+ (everything goes quiet, then a sting)
+        register(new CreepingDarknessEvent());  // day 5+ (the dark closes in)
+        register(new BloodScreenEvent());       // day 4+ (red screen, false wound)
+        register(new SurroundWhispersEvent());  // day 4+ (whispers from every side)
+        register(new NullBreathingEvent());     // day 3+ (breathing over your shoulder)
+        register(new PhantomExplosionEvent());  // day 5+ (a blast in the distance)
+        register(new TrappedFeelingEvent());    // day 6+ (you can't leave)
+        register(new UnseenHunterEvent());      // day 7+ (something is hunting you)
     }
 
     private EventRegistry() {

@@ -186,7 +186,7 @@ public final class ClientHorrorManager {
     // --- per-tick advance ----------------------------------------------------------------------
 
     public void tick() {
-        keepBackgroundLoop();
+        stopBackgroundLoop();
         // Occasional bursts of on-screen static/snow.
         if (crtStaticTicks > 0) {
             crtStaticTicks--;
@@ -436,17 +436,11 @@ public final class ClientHorrorManager {
         g.fill(x0, tearY + tearH, x1, tearY + tearH + 1, 0x66000000);
     }
 
-    private void keepBackgroundLoop() {
-        if (mc.level == null) {
-            return; // CrtAmbienceSound stops itself when the world unloads
-        }
-        final net.minecraft.client.sounds.SoundManager sm = mc.getSoundManager();
-        if (bgLoop == null || !sm.isActive(bgLoop)) {
-            final SoundEvent sound = lookup("background");
-            if (sound != null) {
-                bgLoop = new CrtAmbienceSound(sound, 0.30F);
-                sm.play(bgLoop);
-            }
+    /** Background ambience loop removed by request: ensure any lingering instance is silenced. */
+    private void stopBackgroundLoop() {
+        if (bgLoop != null) {
+            mc.getSoundManager().stop(bgLoop);
+            bgLoop = null;
         }
     }
 

@@ -37,6 +37,16 @@ public class StalkerEntity extends Mob {
 
     private int serverAge;
 
+    /**
+     * If true, this is a distant "watcher" form (the far white day-stalker, the post-day-5 watchers):
+     * it MUST wink out the instant any player comes within {@link #approachRadius}. Enforced here, at
+     * the entity level, so the rule holds even if the manager has lost track of it (orphaned by chunk
+     * churn) - which is exactly the "white null that just stands there and never disappears" bug.
+     * The deliberately-close forms (cave/behind/window/sleep/ritual) leave this false.
+     */
+    private boolean vanishOnApproach;
+    private double approachRadius = 25.0;
+
     public StalkerEntity(EntityType<? extends StalkerEntity> type, Level level) {
         super(type, level);
         setPersistenceRequired();
@@ -58,7 +68,19 @@ public class StalkerEntity extends Mob {
         }
         if ((serverAge & 31) == 0 && level().getNearestPlayer(this, ABANDON_DISTANCE) == null) {
             discard();
+            return;
         }
+        // Hard, unconditional 25-block rule for the watcher forms - checked every tick, no line-of-sight
+        // and no manager bookkeeping required. If anyone is this close, it is already gone.
+        if (vanishOnApproach && level().getNearestPlayer(this, approachRadius) != null) {
+            discard();
+        }
+    }
+
+    /** Marks this as a distant watcher that must vanish the instant a player closes within {@code radius}. */
+    public void setVanishOnApproach(boolean vanish, double radius) {
+        this.vanishOnApproach = vanish;
+        this.approachRadius = radius;
     }
 
     /** Default attributes. Movement speed is zero - it must never path or drift. */

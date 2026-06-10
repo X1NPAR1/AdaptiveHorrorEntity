@@ -61,6 +61,9 @@ public final class PlayerHorrorState {
     /** Tick at which the scheduler may next roll an ambient event. */
     public long nextSchedulerTick;
 
+    /** Tick of the next guaranteed environmental-tampering roll (block/torch/door). 0 = unset. */
+    public long nextEnvEventTick;
+
     /** Independent timers (game-time ticks) for the two recurring ambient audio cues. 0 = unset. */
     public long nextScaryTick;
     public long nextISeeYouTick;

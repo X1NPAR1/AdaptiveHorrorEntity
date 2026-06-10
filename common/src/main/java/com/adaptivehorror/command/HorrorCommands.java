@@ -71,6 +71,8 @@ public final class HorrorCommands {
                         .then(Commands.literal("moblock").executes(HorrorCommands::mobLock))
                         .then(Commands.literal("assault").executes(HorrorCommands::assault))
                         .then(Commands.literal("disclaimer").executes(HorrorCommands::disclaimer))
+                        .then(Commands.literal("clear").executes(HorrorCommands::clear))
+                        .then(Commands.literal("version").executes(HorrorCommands::version))
                         .then(Commands.literal("reload").executes(HorrorCommands::reload)));
 
         // Short alias: /ahe ...
@@ -167,6 +169,22 @@ public final class HorrorCommands {
     private static int reload(CommandContext<CommandSourceStack> ctx) {
         ConfigManager.load();
         feedback(ctx, "Yapılandırma yeniden yüklendi.");
+        return 1;
+    }
+
+    /** Removes every null around the player (managed stalker + watchers) - a clean slate for testing. */
+    private static int clear(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        final ServerPlayer player = ctx.getSource().getPlayerOrException();
+        final PlayerHorrorState s = HorrorScheduler.getOrCreateState(player);
+        StalkerManager.despawn(player.serverLevel(), s);
+        com.adaptivehorror.spawn.WatcherManager.despawnAll(player.serverLevel(), s);
+        feedback(ctx, "Çevredeki tüm null'lar temizlendi.");
+        return 1;
+    }
+
+    /** Prints the running jar's version so the installed build can be verified at a glance. */
+    private static int version(CommandContext<CommandSourceStack> ctx) {
+        feedback(ctx, com.adaptivehorror.Constants.MOD_NAME + " v" + com.adaptivehorror.Constants.VERSION);
         return 1;
     }
 

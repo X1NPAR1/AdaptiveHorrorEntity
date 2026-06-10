@@ -337,6 +337,10 @@ public final class StalkerManager {
         }
         stalker.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
         stalker.setNightForm(placement == StalkerBehavior.CAVE || !level.isDay() || forceBlack);
+        // Only the distant FAR watcher enforces the hard 25-block vanish at the entity level; the close
+        // forms (cave/behind/window/sleep) are meant to be near and use the manager's smaller triggers.
+        stalker.setVanishOnApproach(placement == StalkerBehavior.FAR,
+                ConfigManager.get().entity.despawnTriggerRadius);
         facePlayer(stalker, player);
         if (!level.addFreshEntity(stalker)) {
             return false;

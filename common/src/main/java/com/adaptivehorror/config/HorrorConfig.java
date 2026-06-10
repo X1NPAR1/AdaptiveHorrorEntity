@@ -111,6 +111,14 @@ public final class HorrorConfig {
         public double travelJumpscareChance = 0.10;
         /** Minimum seconds between any two full-screen jumpscares (global cooldown). */
         public int jumpscareCooldownSeconds = 180;
+
+        /**
+         * Guaranteed environmental-tampering cadence (#13), independent of the weighted roll. Every
+         * {@code envEventIntervalSeconds} (halved underground) there is a {@code envEventChance} roll for
+         * a block-break / torch-snuff / door beat - so these physical scares happen on a reliable clock.
+         */
+        public int envEventIntervalSeconds = 120; // surface; underground uses half
+        public double envEventChance = 0.50;
     }
 
     /** Periodic ambient audio cadence, in seconds. */
@@ -181,6 +189,8 @@ public final class HorrorConfig {
         public int nightMinCount = 5;
         public int nightDistanceMin = 26;   // just outside the 25-block vanish radius
         public int nightDistanceMax = 70;
+        /** Daytime hard cap on simultaneous white watchers (#11). */
+        public int daytimeMaxCount = 4;
     }
 
     public final InventoryDrop inventoryDrop = new InventoryDrop();

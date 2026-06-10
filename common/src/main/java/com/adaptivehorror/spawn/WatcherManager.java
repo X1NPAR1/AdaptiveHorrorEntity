@@ -76,6 +76,10 @@ public final class WatcherManager {
         if (surge && state.watcherTargetCount < cfg.nightMinCount) {
             state.watcherTargetCount = cfg.nightMinCount;
         }
+        // Daytime cap (#11): out in daylight there are never more than 4 white watchers at once.
+        if (!surge && state.watcherTargetCount > cfg.daytimeMaxCount) {
+            state.watcherTargetCount = cfg.daytimeMaxCount;
+        }
         final long now = level.getGameTime();
         final long spawnGap = surge ? 10L : 20L; // up to ~2 nulls/sec during the surge
         if (state.watcherIds.size() < state.watcherTargetCount && now >= state.nextWatcherSpawnTick) {
@@ -119,6 +123,7 @@ public final class WatcherManager {
         }
         watcher.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
         watcher.setNightForm(underground || !level.isDay());
+        watcher.setVanishOnApproach(true, cfg.vanishRadius); // entity-enforced: never lingers up close
         facePlayer(watcher, player);
         if (level.addFreshEntity(watcher)) {
             state.watcherIds.add(watcher.getUUID());

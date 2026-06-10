@@ -92,6 +92,7 @@ public final class HorrorScheduler {
         PeriodicAudioScheduler.tick(player, state, config, RNG);
         InventoryDropManager.tick(player, state, config, RNG);
         tickEventRoll(player, state, config, day, intensity);
+        tickEnvEvent(player, state, config, day, intensity);
     }
 
     public static void removePlayer(ServerPlayer player) {
@@ -152,6 +153,36 @@ public final class HorrorScheduler {
         state.nextSchedulerTick = scheduleNext(now, config, intensity, underground);
     }
 
+    /**
+     * The guaranteed environmental beat (#13): on a fixed clock (every {@code envEventIntervalSeconds},
+     * halved underground) roll {@code envEventChance} for a physical tamper - a block crumbling, a torch
+     * snuffing out, a door swinging. Separate from the weighted roll so these reliably keep happening.
+     */
+    private static void tickEnvEvent(ServerPlayer player, PlayerHorrorState state,
+                                     HorrorConfig config, int day, double intensity) {
+        if (!config.features.worldManipulation) {
+            return;
+        }
+        final long now = player.level().getGameTime();
+        final boolean underground = com.adaptivehorror.util.Locations.isUnderground(player);
+        if (state.nextEnvEventTick == 0L) {
+            final int secs = underground ? config.scheduler.envEventIntervalSeconds / 2
+                    : config.scheduler.envEventIntervalSeconds;
+            state.nextEnvEventTick = now + (long) secs * 20L;
+            return;
+        }
+        if (now < state.nextEnvEventTick) {
+            return;
+        }
+        final int secs = underground ? config.scheduler.envEventIntervalSeconds / 2
+                : config.scheduler.envEventIntervalSeconds;
+        state.nextEnvEventTick = now + (long) secs * 20L;
+        if (RNG.nextDouble() < config.scheduler.envEventChance) {
+            EventRegistry.runById("world_manipulation",
+                    new EventContext(player, state, config, RNG, day, intensity, underground));
+        }
+    }
+
     /** Randomised interval, shortened as intensity rises and again when underground (more frequent). */
     private static long scheduleNext(long now, HorrorConfig config, double intensity, boolean underground) {
         final int min = config.scheduler.baseIntervalSecondsMin;
@@ -159,8 +190,9 @@ public final class HorrorScheduler {
         final int span = Math.max(1, max - min);
         final double scale = 1.0 / Math.max(0.25, intensity);
         final double caveFactor = underground ? 0.55 : 1.0; // caves haunt ~2x as often
-        // Cap the silence so the world always feels haunted: <=90s underground, <=150s on the surface.
-        final long cap = underground ? 90L : 150L;
+        // Cap the silence so the world always feels haunted: an event at least every 60s underground,
+        // every 120s on the surface (the design's "1 min cave / 2 min surface" cadence).
+        final long cap = underground ? 60L : 120L;
         final long seconds = Math.min(cap, (long) ((min + RNG.nextInt(span)) * scale * caveFactor));
         return now + Math.max(20L, seconds * 20L);
     }
