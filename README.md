@@ -1,6 +1,6 @@
 # Adaptive Horror Entity
 
-**Version 2.6.3** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
+**Version 2.7.0** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
 multi-loader). The design goal is a single, intelligent supernatural presence — *null* — that makes
 the player feel *watched*: tension, doubt and paranoia over cheap jumpscares.
 
@@ -159,6 +159,12 @@ stare; 95% peaceful, 5% (18% at night) strike when you approach within 25.
   inventory onto the ground.
 - **Ambient dread** — `travel1/2`, `scary_ambient`, `iseeyou` drift in from random directions; a
   travel sound every 120 blocks with a 10% escalation to the travel jumpscare.
+
+## Atmosphere (always on)
+The whole game is rendered as if through an **old CRT television**: resolution-aware black
+**pillarbox bars** down each side, **scanlines**, a soft tube **vignette**, a faint flicker and a
+slow rolling line — even jumpscares play out inside the TV frame. The world also carries a permanent
+**light haze** (the distance fog is pulled in ~20%). Both are deliberately **not** disableable.
 
 ## Architecture
 - **Cross-loader networking** — one S2C effect channel + C2S control as 1.21 typed payloads, behind

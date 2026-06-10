@@ -253,6 +253,45 @@ public final class ClientHorrorManager {
             final float a = Math.min(1.0F, blackoutTicks / 4.0F);
             graphics.fill(0, 0, w, h, withAlpha(0x000000, a));
         }
+
+        // The always-on "old TV" look, drawn last so the whole picture - HUD and jumpscares alike -
+        // reads as if seen through a CRT. Not gated by anything; this is part of the world now.
+        renderOldTv(graphics, w, h);
+    }
+
+    /**
+     * Pillarboxes the picture to ~4:3 with solid black bars (scaled to the resolution), then lays
+     * scanlines, a soft vignette, a faint flicker and a slow rolling line over it.
+     */
+    private void renderOldTv(GuiGraphics g, int w, int h) {
+        final int pictureW = Math.min(w, (int) (h * 4.0 / 3.0));
+        final int barW = Math.max(0, (w - pictureW) / 2);
+        final int x0 = barW;
+        final int x1 = w - barW;
+
+        // Scanlines: a translucent dark line every 3 px.
+        for (int y = 0; y < h; y += 3) {
+            g.fill(x0, y, x1, y + 1, 0x33000000);
+        }
+
+        // Soft vignette top and bottom (the curved-tube darkening).
+        final int band = Math.max(20, h / 6);
+        g.fillGradient(x0, 0, x1, band, 0x66000000, 0x00000000);
+        g.fillGradient(x0, h - band, x1, h, 0x00000000, 0x66000000);
+
+        // Subtle brightness flicker.
+        final float flick = 0.05F + 0.035F * (float) Math.sin(System.currentTimeMillis() / 90.0);
+        g.fill(x0, 0, x1, h, withAlpha(0x000000, flick));
+
+        // A faint horizontal line rolling slowly up the screen.
+        final int rollY = (int) ((System.currentTimeMillis() / 12L) % Math.max(1, h));
+        g.fill(x0, rollY, x1, rollY + 2, 0x12FFFFFF);
+
+        // Solid pillarbox bars on top of everything.
+        if (barW > 0) {
+            g.fill(0, 0, barW, h, 0xFF000000);
+            g.fill(x1, 0, w, h, 0xFF000000);
+        }
     }
 
     /** All jumpscare textures are normalised to this square size by the asset-conversion step. */
