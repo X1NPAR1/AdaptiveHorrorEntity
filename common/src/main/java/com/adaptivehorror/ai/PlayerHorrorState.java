@@ -33,6 +33,9 @@ public final class PlayerHorrorState {
     /** Game-time tick before which no new stalker may spawn (the 15-60s gap after one vanishes). */
     public long nextStalkerSpawnTick;
 
+    /** How many times the stalker has been triggered - the entity grows bolder with each one. */
+    public int encounters;
+
     /** Game-time tick at which a scheduled jumpscare-kill lands (0 = none). */
     public long pendingKillTick;
 

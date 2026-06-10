@@ -27,6 +27,7 @@ if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
 $audioMap = @{
     "iseeyousoundeffect.mp3" = "iseeyou"
     "scarysounds.mp3"        = "scary_ambient"
+    "background.mp3"         = "background"
     "jumpscaresound1.mp3"    = "jumpscare1"
     "jumpscaresound2.mp3"    = "jumpscare2"
     "jumpscaresound3.mp3"    = "jumpscare3"

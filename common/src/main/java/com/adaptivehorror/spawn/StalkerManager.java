@@ -1,5 +1,6 @@
 package com.adaptivehorror.spawn;
 
+import com.adaptivehorror.ai.AdaptiveAI;
 import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
@@ -67,6 +68,14 @@ public final class StalkerManager {
         }
 
         final boolean cave = state.stalkerBehavior == StalkerBehavior.CAVE;
+
+        // The player's environment changed (surface <-> underground): re-place to match, so an old
+        // surface null never lingers far above a player who has gone deep underground (or vice versa).
+        if (Locations.isUnderground(player) != cave) {
+            despawn(level, state);
+            return;
+        }
+
         active.setNightForm(cave || !level.isDay()); // always black underground
         state.stalkerAgeTicks++;
         facePlayer(active, player);
@@ -164,13 +173,16 @@ public final class StalkerManager {
     /** Mostly vanish; strike with the day/night/underground attack chance (caves are deadliest). */
     private static void triggerReaction(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
                                         HorrorConfig config, Random random) {
-        final double chance;
+        double chance;
         if (state.stalkerBehavior == StalkerBehavior.CAVE) {
             chance = config.entity.stalkerAttackChanceUnderground;
         } else {
             chance = player.level().isDay()
                     ? config.entity.stalkerAttackChance : config.entity.stalkerAttackChanceNight;
         }
+        // It grows bolder the more encounters you survive.
+        chance = Math.min(0.9, chance * AdaptiveAI.pressure(state));
+        state.encounters++;
         if (random.nextDouble() < chance) {
             aggressiveReaction(player, stalker, state, random);
         } else {
@@ -227,20 +239,15 @@ public final class StalkerManager {
             return;
         }
 
-        final boolean night = !level.isDay();
-        final boolean sheltered = !level.canSeeSky(player.blockPosition());
-
-        // Night + sheltered: at the window, just outside. A silent vignette sells "being watched".
-        if (night && sheltered) {
+        // Smart, behaviour-driven placement (window when hiding, behind when AFK, far when vigilant).
+        final StalkerBehavior placement = AdaptiveAI.chooseSurfacePlacement(player, state, level, random);
+        if (placement == StalkerBehavior.WINDOW) {
             final BlockPos window = SpawnLocator.findSkylit(player, random, 5, 16);
             if (window != null && spawnAt(player, level, state, window, StalkerBehavior.WINDOW)) {
                 HorrorNet.sendVignettePulse(player, 20);
                 return;
             }
-        }
-
-        // By night out in the open, it may loom directly behind; by day it is always the far watcher.
-        if (night && !sheltered && random.nextBoolean()) {
+        } else if (placement == StalkerBehavior.BEHIND) {
             final BlockPos behind = SpawnLocator.findBehind(player, random, BEHIND_MIN, BEHIND_MAX);
             if (behind != null && spawnAt(player, level, state, behind, StalkerBehavior.BEHIND)) {
                 HorrorNet.sendVignettePulse(player, 18);

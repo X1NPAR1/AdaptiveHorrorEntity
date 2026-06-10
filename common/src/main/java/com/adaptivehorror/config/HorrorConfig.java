@@ -34,9 +34,9 @@ public final class HorrorConfig {
     public static final class Null {
         public boolean enabled = true;
         public String name = "null";
-        /** Delay bounds (seconds) after disclaimer acceptance before null joins. Default 5-10 min. */
-        public int joinDelayMinSeconds = 300;
-        public int joinDelayMaxSeconds = 600;
+        /** Delay bounds (seconds) after disclaimer acceptance before null joins (then it's automatic). */
+        public int joinDelayMinSeconds = 90;
+        public int joinDelayMaxSeconds = 210;
         /** How long null stays before it occasionally "leaves the server" (seconds, 5-15 min). */
         public int presentMinSeconds = 300;
         public int presentMaxSeconds = 900;

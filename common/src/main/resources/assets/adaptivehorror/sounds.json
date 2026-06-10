@@ -7,6 +7,10 @@
     "category": "ambient",
     "sounds": [ { "name": "adaptivehorror:scary_ambient", "stream": false } ]
   },
+  "background": {
+    "category": "ambient",
+    "sounds": [ { "name": "adaptivehorror:background", "stream": false } ]
+  },
   "jumpscare1": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare1", "stream": false } ] },
   "jumpscare2": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare2", "stream": false } ] },
   "jumpscare3": { "category": "master", "sounds": [ { "name": "adaptivehorror:jumpscare3", "stream": false } ] },

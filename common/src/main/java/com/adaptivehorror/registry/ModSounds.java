@@ -16,6 +16,7 @@ public final class ModSounds {
 
     public static SoundEvent I_SEE_YOU;
     public static SoundEvent SCARY_AMBIENT;
+    public static SoundEvent BACKGROUND;
 
     public static final SoundEvent[] JUMPSCARE = new SoundEvent[4];
     /** Only the travel sounds that ship with an .ogg are registered. Add more by extending this. */
@@ -27,6 +28,7 @@ public final class ModSounds {
     public static void register() {
         I_SEE_YOU = sound("iseeyou");
         SCARY_AMBIENT = sound("scary_ambient");
+        BACKGROUND = sound("background");
         for (int i = 0; i < JUMPSCARE.length; i++) {
             JUMPSCARE[i] = sound("jumpscare" + (i + 1));
         }

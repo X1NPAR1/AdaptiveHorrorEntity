@@ -38,6 +38,8 @@ public final class WatcherManager {
             return;
         }
 
+        final boolean underground = com.adaptivehorror.util.Locations.isUnderground(player);
+
         // Resolve, face the player, and handle the approach of each existing watcher.
         final Iterator<UUID> it = state.watcherIds.iterator();
         while (it.hasNext()) {
@@ -46,7 +48,14 @@ public final class WatcherManager {
                 it.remove();
                 continue;
             }
-            watcher.setNightForm(!level.isDay());
+            // Drop watchers that no longer match the player's level (e.g. surface ones once you go
+            // deep underground), so they re-form in the right place rather than hanging in the sky.
+            if (Math.abs(watcher.getY() - player.getY()) > 40.0) {
+                watcher.discard();
+                it.remove();
+                continue;
+            }
+            watcher.setNightForm(underground || !level.isDay());
             facePlayer(watcher, player);
 
             if (player.distanceToSqr(watcher) <= (double) cfg.vanishRadius * cfg.vanishRadius) {
@@ -87,7 +96,12 @@ public final class WatcherManager {
 
     private static void spawnWatcher(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
                                      HorrorConfig.Watchers cfg, Random random) {
-        final BlockPos pos = SpawnLocator.findSpawn(player, random, cfg.distanceMin, cfg.distanceMax);
+        // Underground, the watchers gather in the caves around you (at your level); on the surface,
+        // they stand far off. Never on the distant surface while you're deep underground.
+        final boolean underground = com.adaptivehorror.util.Locations.isUnderground(player);
+        final BlockPos pos = underground
+                ? SpawnLocator.findUnderground(player, random, 16, 64)
+                : SpawnLocator.findSpawn(player, random, cfg.distanceMin, cfg.distanceMax);
         if (pos == null) {
             return; // no valid (loaded) spot this tick; try again later
         }
@@ -96,7 +110,7 @@ public final class WatcherManager {
             return;
         }
         watcher.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
-        watcher.setNightForm(!level.isDay());
+        watcher.setNightForm(underground || !level.isDay());
         facePlayer(watcher, player);
         if (level.addFreshEntity(watcher)) {
             state.watcherIds.add(watcher.getUUID());

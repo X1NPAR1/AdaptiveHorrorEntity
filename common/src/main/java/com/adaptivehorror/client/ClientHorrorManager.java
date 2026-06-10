@@ -54,6 +54,10 @@ public final class ClientHorrorManager {
     private int origWinW, origWinH, origWinX, origWinY;
     private boolean windowSaved;
 
+    // Old-TV crackle loop + occasional on-screen static/snow.
+    private CrtAmbienceSound bgLoop;
+    private int crtStaticTicks;
+
     private static final double CRASH_CHANCE = 0.01;
     private static final double WINDOW_FX_CHANCE = 0.10;
 
@@ -153,6 +157,13 @@ public final class ClientHorrorManager {
     // --- per-tick advance ----------------------------------------------------------------------
 
     public void tick() {
+        keepBackgroundLoop();
+        // Occasional bursts of on-screen static/snow.
+        if (crtStaticTicks > 0) {
+            crtStaticTicks--;
+        } else if (random.nextInt(450) == 0) {
+            crtStaticTicks = 3 + random.nextInt(9);
+        }
         if (jumpscareTicks > 0) {
             jumpscareTicks--;
         }
@@ -260,8 +271,9 @@ public final class ClientHorrorManager {
     }
 
     /**
-     * Pillarboxes the picture to ~4:3 with solid black bars (scaled to the resolution), then lays
-     * scanlines, a soft vignette, a faint flicker and a slow rolling line over it.
+     * Pillarboxes the picture to ~4:3 with solid black bars (scaled to the resolution), darkens it
+     * like a dim tube, then lays scanlines, a tube vignette, a flicker, a rolling line and - in
+     * bursts - on-screen static/snow and a tearing band.
      */
     private void renderOldTv(GuiGraphics g, int w, int h) {
         final int pictureW = Math.min(w, (int) (h * 4.0 / 3.0));
@@ -269,28 +281,71 @@ public final class ClientHorrorManager {
         final int x0 = barW;
         final int x1 = w - barW;
 
+        // Overall dim - a tube TV is never as bright as a monitor.
+        g.fill(x0, 0, x1, h, withAlpha(0x000000, 0.18F));
+
         // Scanlines: a translucent dark line every 3 px.
         for (int y = 0; y < h; y += 3) {
-            g.fill(x0, y, x1, y + 1, 0x33000000);
+            g.fill(x0, y, x1, y + 1, 0x44000000);
         }
 
-        // Soft vignette top and bottom (the curved-tube darkening).
+        // Tube vignette - top/bottom and the sides nearest the bars.
         final int band = Math.max(20, h / 6);
-        g.fillGradient(x0, 0, x1, band, 0x66000000, 0x00000000);
-        g.fillGradient(x0, h - band, x1, h, 0x00000000, 0x66000000);
+        final int side = Math.max(20, pictureW / 8);
+        g.fillGradient(x0, 0, x1, band, 0x77000000, 0x00000000);
+        g.fillGradient(x0, h - band, x1, h, 0x00000000, 0x77000000);
+        g.fill(x0, 0, x0 + side / 3, h, withAlpha(0x000000, 0.12F));
+        g.fill(x1 - side / 3, 0, x1, h, withAlpha(0x000000, 0.12F));
 
-        // Subtle brightness flicker.
-        final float flick = 0.05F + 0.035F * (float) Math.sin(System.currentTimeMillis() / 90.0);
+        // Brightness flicker.
+        final float flick = 0.06F + 0.05F * (float) Math.sin(System.currentTimeMillis() / 80.0);
         g.fill(x0, 0, x1, h, withAlpha(0x000000, flick));
 
         // A faint horizontal line rolling slowly up the screen.
         final int rollY = (int) ((System.currentTimeMillis() / 12L) % Math.max(1, h));
-        g.fill(x0, rollY, x1, rollY + 2, 0x12FFFFFF);
+        g.fill(x0, rollY, x1, rollY + 2, 0x16FFFFFF);
+
+        // Bursts of static/snow and a torn band.
+        if (crtStaticTicks > 0) {
+            renderStatic(g, x0, x1, h);
+        }
 
         // Solid pillarbox bars on top of everything.
         if (barW > 0) {
             g.fill(0, 0, barW, h, 0xFF000000);
             g.fill(x1, 0, w, h, 0xFF000000);
+        }
+    }
+
+    private void renderStatic(GuiGraphics g, int x0, int x1, int h) {
+        final int width = Math.max(1, x1 - x0);
+        // Snow: many small flecks of random grey scattered over the picture.
+        for (int i = 0; i < 90; i++) {
+            final int sx = x0 + random.nextInt(width);
+            final int sy = random.nextInt(h);
+            final int len = 1 + random.nextInt(3);
+            final int grey = 0x33 + random.nextInt(0xCC);
+            final int col = (0xA0 << 24) | (grey << 16) | (grey << 8) | grey;
+            g.fill(sx, sy, Math.min(x1, sx + len), sy + 1, col);
+        }
+        // A torn / displaced band that jitters.
+        final int tearY = random.nextInt(h);
+        final int tearH = 4 + random.nextInt(10);
+        g.fill(x0, tearY, x1, tearY + tearH, withAlpha(0xFFFFFF, 0.10F));
+        g.fill(x0, tearY + tearH, x1, tearY + tearH + 1, 0x66000000);
+    }
+
+    private void keepBackgroundLoop() {
+        if (mc.level == null) {
+            return; // CrtAmbienceSound stops itself when the world unloads
+        }
+        final net.minecraft.client.sounds.SoundManager sm = mc.getSoundManager();
+        if (bgLoop == null || !sm.isActive(bgLoop)) {
+            final SoundEvent sound = lookup("background");
+            if (sound != null) {
+                bgLoop = new CrtAmbienceSound(sound, 0.30F);
+                sm.play(bgLoop);
+            }
         }
     }
 
