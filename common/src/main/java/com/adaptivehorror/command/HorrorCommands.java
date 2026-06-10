@@ -3,6 +3,7 @@ package com.adaptivehorror.command;
 import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
+import com.adaptivehorror.event.AssaultManager;
 import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.npc.NullManager;
@@ -68,6 +69,7 @@ public final class HorrorCommands {
                         .then(Commands.literal("day").executes(HorrorCommands::day))
                         .then(Commands.literal("nulljoin").executes(HorrorCommands::nullJoin))
                         .then(Commands.literal("moblock").executes(HorrorCommands::mobLock))
+                        .then(Commands.literal("assault").executes(HorrorCommands::assault))
                         .then(Commands.literal("disclaimer").executes(HorrorCommands::disclaimer))
                         .then(Commands.literal("reload").executes(HorrorCommands::reload)));
 
@@ -144,6 +146,12 @@ public final class HorrorCommands {
     private static int mobLock(CommandContext<CommandSourceStack> ctx) {
         MobLockManager.forceStart(ctx.getSource().getServer());
         feedback(ctx, "Kitlenme olayı başlatıldı.");
+        return 1;
+    }
+
+    private static int assault(CommandContext<CommandSourceStack> ctx) {
+        AssaultManager.forceStart(ctx.getSource().getServer());
+        feedback(ctx, "Saldırı başlatıldı (moblar saldırıyor).");
         return 1;
     }
 

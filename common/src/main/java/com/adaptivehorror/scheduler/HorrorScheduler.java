@@ -5,6 +5,8 @@ import com.adaptivehorror.ai.BehaviorSampler;
 import com.adaptivehorror.ai.PlayerHorrorState;
 import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
+import com.adaptivehorror.event.AssaultManager;
+import com.adaptivehorror.event.InventoryDropManager;
 import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.network.HorrorNet;
 import com.adaptivehorror.npc.NullManager;
@@ -46,6 +48,7 @@ public final class HorrorScheduler {
         if (ConfigManager.get().enabled) {
             NullManager.tick(server);
             MobLockManager.tick(server);
+            AssaultManager.tick(server);
         }
     }
 
@@ -84,6 +87,7 @@ public final class HorrorScheduler {
         StalkerManager.tick(player, state, config, RNG);
         tickTravelSound(player, state, config, intensity);
         PeriodicAudioScheduler.tick(player, state, config, RNG);
+        InventoryDropManager.tick(player, state, config, RNG);
         tickEventRoll(player, state, config, day, intensity);
     }
 

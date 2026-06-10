@@ -17,17 +17,17 @@ public enum StalkerBehavior {
      *  the above (vanish / effect / rush). */
     WATCH;
 
-    /** Weighted random pick. RUSH (lethal) is deliberately the rarest. */
+    /** Weighted random pick. RUSH (lethal) is deliberately rare - the entity rarely kills. */
     public static StalkerBehavior random(Random random) {
         final int roll = random.nextInt(100);
-        if (roll < 35) {
-            return EFFECT;   // 35%
-        } else if (roll < 60) {
+        if (roll < 47) {
+            return EFFECT;   // 47%
+        } else if (roll < 72) {
             return VANISH;   // 25%
-        } else if (roll < 85) {
+        } else if (roll < 97) {
             return WATCH;    // 25%
         } else {
-            return RUSH;     // 15%
+            return RUSH;     // 3% - the only routine that always kills
         }
     }
 }

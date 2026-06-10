@@ -27,6 +27,15 @@ public final class PlayerHorrorState {
     /** Ticks the active stalker has existed - used to time-out rushers/watchers. */
     public int stalkerAgeTicks;
 
+    /** Consecutive ticks the player has been looking at the active stalker (the enderman rule). */
+    public int stalkerLookTicks;
+
+    /** Game-time tick at which a revealed/teleported stalker should vanish (0 = not revealing). */
+    public long revealEndTick;
+
+    /** Game-time tick at which a scheduled jumpscare-kill lands (0 = none). */
+    public long pendingKillTick;
+
     /** Last sampled player position, for incremental horizontal-travel accounting. */
     @Nullable
     public Vec3 lastSampledPos;
@@ -46,6 +55,9 @@ public final class PlayerHorrorState {
     /** Independent timers (game-time ticks) for the two recurring ambient audio cues. 0 = unset. */
     public long nextScaryTick;
     public long nextISeeYouTick;
+
+    /** Next tick at which the inventory-drop attempt rolls. 0 = unset. */
+    public long nextInventoryDropTick;
 
     /** Previous head yaw, used to detect sharp "check behind" turns. */
     public float lastYaw = Float.NaN;

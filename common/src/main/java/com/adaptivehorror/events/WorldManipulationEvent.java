@@ -8,13 +8,9 @@ import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Quiet, "impossible" tampering with the player's surroundings. The implemented manifestation
- * <em>toggles</em> the nearest door (a closed door swings open, an open one shuts) and plays the
- * matching sound, so it is clearly perceptible. Kept to a small weight so it feels like a glitch in
- * reality rather than a mechanic.
- *
- * <p>Further manifestations from the design (rotating a chest, restoring a broken block, moving
- * animals) plug in here as additional cases without touching the scheduler.
+ * Quiet, "impossible" tampering with the surroundings: toggling the nearest door (it swings open or
+ * shut on its own) or breaking a random nearby block (it crumbles with no one there). Subtle and
+ * rare, so it reads as reality glitching rather than a mechanic.
  */
 public final class WorldManipulationEvent implements HorrorEvent {
 
@@ -27,7 +23,7 @@ public final class WorldManipulationEvent implements HorrorEvent {
 
     @Override
     public int minDay() {
-        return 7;
+        return 3;
     }
 
     @Override
@@ -37,16 +33,22 @@ public final class WorldManipulationEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 0.4;
+        return 0.8;
     }
 
     @Override
     public void execute(EventContext ctx) {
+        if (ctx.random.nextBoolean() && toggleNearestDoor(ctx)) {
+            return;
+        }
+        breakRandomBlock(ctx);
+    }
+
+    private static boolean toggleNearestDoor(EventContext ctx) {
         final BlockPos origin = ctx.player.blockPosition();
         BlockPos nearest = null;
         double nearestSq = Double.MAX_VALUE;
         BlockState nearestState = null;
-
         for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-RADIUS, -3, -RADIUS),
                 origin.offset(RADIUS, 3, RADIUS))) {
             final BlockState state = ctx.level.getBlockState(pos);
@@ -60,12 +62,35 @@ public final class WorldManipulationEvent implements HorrorEvent {
             }
         }
         if (nearest == null) {
-            return;
+            return false;
         }
-
-        // Toggle the door silently - a door that opens or shuts on its own, without a sound, is far
-        // more unsettling than an audible one. Flag 10 = send to clients + suppress neighbour updates.
         final boolean nowOpen = !nearestState.getValue(DoorBlock.OPEN);
         ctx.level.setBlock(nearest, nearestState.setValue(DoorBlock.OPEN, nowOpen), 10);
+        return true;
+    }
+
+    private static void breakRandomBlock(EventContext ctx) {
+        final BlockPos origin = ctx.player.blockPosition();
+        for (int attempt = 0; attempt < 20; attempt++) {
+            final BlockPos pos = origin.offset(
+                    ctx.random.nextInt(RADIUS * 2 + 1) - RADIUS,
+                    ctx.random.nextInt(5) - 2,
+                    ctx.random.nextInt(RADIUS * 2 + 1) - RADIUS);
+            final BlockState state = ctx.level.getBlockState(pos);
+            if (!isBreakable(state, ctx)) {
+                continue;
+            }
+            // Crumbles with the break particles/sound, but drops nothing - it simply ceases to exist.
+            ctx.level.destroyBlock(pos, false);
+            return;
+        }
+    }
+
+    private static boolean isBreakable(BlockState state, EventContext ctx) {
+        // Skip air, unbreakable blocks, liquids and anything with a block entity (chests etc.).
+        return !state.isAir()
+                && state.getDestroySpeed(ctx.level, BlockPos.ZERO) >= 0.0F
+                && state.getFluidState().isEmpty()
+                && !state.hasBlockEntity();
     }
 }

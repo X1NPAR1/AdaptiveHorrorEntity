@@ -115,6 +115,34 @@ public final class HorrorConfig {
         public int maxIntensityDay = 10;
     }
 
+    public final Assault assault = new Assault();
+
+    /**
+     * Mob hostility. At night there is a small chance per minute that nearby mobs turn on the player
+     * for a minute (weakly). From {@code aggressionDay} onward, null is permanently aggressive: mobs
+     * hound the player day and night and spawn far more thickly. A mob landing the kill triggers a
+     * jumpscare.
+     */
+    public static final class Assault {
+        public boolean enabled = true;
+        public double nightChancePerMinute = 0.03;
+        public int durationSeconds = 60;
+        public int radiusChunks = 4;
+        public float contactDamage = 1.0f;
+        public int aggressionDay = 10;       // permanent day+night aggression and 3x spawns after this
+        public int extraSpawnPerCycle = 3;   // mobs added near each player per spawn cycle (post-day-10)
+    }
+
+    public final InventoryDrop inventoryDrop = new InventoryDrop();
+
+    /** From {@code minDay} on, null periodically tries to make the player drop their items. */
+    public static final class InventoryDrop {
+        public boolean enabled = true;
+        public int minDay = 4;
+        public int intervalSeconds = 600;   // try every 10 minutes
+        public double chance = 0.15;        // 15% per try
+    }
+
     public final MobLock mobLock = new MobLock();
 
     /**

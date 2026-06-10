@@ -15,6 +15,8 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.phys.Vec3;
 
 import org.jetbrains.annotations.Nullable;
@@ -25,47 +27,51 @@ import java.util.Optional;
 import java.util.Random;
 
 /**
- * Owns the lifecycle of the single stalker per player. At spawn the stalker commits to a random
- * {@link StalkerBehavior}, and from then on this manager runs the matching routine:
- * <ul>
- *   <li><b>EFFECT</b> - vanishes when approached and applies a brief status effect.</li>
- *   <li><b>VANISH</b> - just vanishes when approached.</li>
- *   <li><b>RUSH</b> - sprints at the player and kills them at ~3 blocks (with a jumpscare).</li>
- *   <li><b>WATCH</b> - spawns close behind and stares; the instant the player looks at it, it does
- *       one of the above.</li>
- * </ul>
- * Spawn <em>placement</em> still reflects the adaptive AI for the non-aggressive archetypes.
+ * Owns the lifecycle and per-encounter behaviour of the single stalker per player.
+ *
+ * <p>On spawn the stalker commits to a random {@link StalkerBehavior}. Independently of that, an
+ * "enderman rule" applies to every form: if the player stares straight at the stalker for two
+ * seconds, it teleports right in front of them, plays a sting, inflicts a short slowness/blindness/
+ * nausea, and vanishes (with a small chance to turn lethal). RUSH is the only routine that reliably
+ * kills, and even then via a jumpscare-then-die beat - so deaths stay rare.
  */
 public final class StalkerManager {
 
     private static final double DOMINANCE_THRESHOLD = 40.0;
-    private static final double RUSH_SPEED = 1.1;            // blocks/tick - a fast, unnatural sprint
-    private static final double RUSH_KILL_DISTANCE = 3.0;
-    private static final int RUSH_TIMEOUT_TICKS = 220;       // give up if the player escapes (~11s)
-    private static final double WATCH_LOOK_DOT = 0.6;        // player looking within ~53 deg of it
-    private static final int WATCH_TIMEOUT_TICKS = 1200;     // 60s of being ignored -> relocate
-    private static final int KILL_JUMPSCARE_TICKS = 14;
+    private static final double RUSH_SPEED = 1.2;
+    private static final double RUSH_KILL_DISTANCE = 1.0;        // jumpscare at 1 block, then die
+    private static final int RUSH_TIMEOUT_TICKS = 240;
+    private static final int STARE_TRIGGER_TICKS = 40;          // 2 seconds of eye contact
+    private static final double STARE_LOOK_DOT = 0.975;         // within ~13 degrees
+    private static final int REVEAL_TICKS = 12;                  // how long the teleport-in lingers
+    private static final int KILL_DELAY_TICKS = 20;             // jumpscare, then die 1s later
+    private static final double STARE_KILL_CHANCE = 0.05;
+    private static final int WATCH_TIMEOUT_TICKS = 1200;
 
-    /** Status effects eligible for the proximity scare (Darkness exists natively in 1.21). */
     @SuppressWarnings("unchecked")
     private static final Holder<MobEffect>[] PROXIMITY_EFFECTS = new Holder[]{
-            MobEffects.BLINDNESS,
-            MobEffects.CONFUSION,
-            MobEffects.DIG_SLOWDOWN,
-            MobEffects.DARKNESS,
+            MobEffects.BLINDNESS, MobEffects.CONFUSION, MobEffects.DIG_SLOWDOWN, MobEffects.DARKNESS,
     };
 
     private StalkerManager() {
     }
 
     public static void tick(ServerPlayer player, PlayerHorrorState state, HorrorConfig config, Random random) {
+        final long now = player.level().getGameTime();
+
+        // A scheduled jumpscare-kill lands even after the entity itself is gone.
+        if (state.pendingKillTick != 0L && now >= state.pendingKillTick) {
+            state.pendingKillTick = 0L;
+            player.hurt(player.damageSources().genericKill(), Float.MAX_VALUE);
+        }
+
         accountTravel(player, state);
 
         final ServerLevel level = player.serverLevel();
         final StalkerEntity active = resolveActive(level, state);
 
         if (active == null) {
-            if (player.isSleeping() && level.getGameTime() % 20L == 0L
+            if (player.isSleeping() && now % 20L == 0L
                     && random.nextDouble() < config.entity.sleepAppearChance) {
                 trySpawnBesideBed(player, level, state);
                 return;
@@ -76,16 +82,31 @@ public final class StalkerManager {
 
         active.setNightForm(!level.isDay());
         state.stalkerAgeTicks++;
+        faceStalkerAtPlayer(active, player);
+
+        // Reveal (post-teleport) lingers briefly, then vanishes.
+        if (state.revealEndTick != 0L) {
+            if (now >= state.revealEndTick) {
+                active.discard();
+                clear(state);
+            }
+            return;
+        }
+
+        // The enderman rule, for every non-rushing form.
+        if (state.stalkerBehavior != StalkerBehavior.RUSH && checkStare(player, active, state)) {
+            stareReaction(player, active, state, random);
+            return;
+        }
 
         switch (state.stalkerBehavior == null ? StalkerBehavior.EFFECT : state.stalkerBehavior) {
-            case RUSH -> tickRush(player, active, state, config, random);
+            case RUSH -> tickRush(player, active, state, random);
             case WATCH -> tickWatch(player, active, state, config, random);
-            case VANISH -> tickVanish(player, active, state, config, random);
+            case VANISH -> tickVanish(player, active, state, config);
             default -> tickEffect(player, active, state, config, random);
         }
     }
 
-    /** Force-spawns a stalker for debug commands (random behaviour), close and visible. */
     @Nullable
     public static BlockPos forceSpawn(ServerPlayer player, PlayerHorrorState state, Random random) {
         despawn(player.serverLevel(), state);
@@ -97,6 +118,7 @@ public final class StalkerManager {
         if (pos != null && spawnAt(player, player.serverLevel(), state, pos)) {
             state.stalkerBehavior = behavior;
             state.stalkerAgeTicks = 0;
+            state.stalkerLookTicks = 0;
             return pos;
         }
         return null;
@@ -110,6 +132,115 @@ public final class StalkerManager {
         clear(state);
     }
 
+    // --- the enderman rule ---------------------------------------------------------------------
+
+    private static boolean checkStare(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state) {
+        final Vec3 eye = player.getEyePosition();
+        final Vec3 center = stalker.position().add(0, stalker.getBbHeight() * 0.5, 0);
+        final double distSq = player.distanceToSqr(stalker);
+        final boolean looking = distSq <= 64 * 64
+                && player.getLookAngle().dot(center.subtract(eye).normalize()) >= STARE_LOOK_DOT
+                && player.hasLineOfSight(stalker);
+        state.stalkerLookTicks = looking ? state.stalkerLookTicks + 1 : 0;
+        return state.stalkerLookTicks >= STARE_TRIGGER_TICKS;
+    }
+
+    private static void stareReaction(ServerPlayer player, StalkerEntity stalker,
+                                      PlayerHorrorState state, Random random) {
+        // Teleport directly in front of the player's face.
+        final Vec3 look = player.getLookAngle();
+        final Vec3 horiz = new Vec3(look.x, 0, look.z).normalize().scale(2.5);
+        final Vec3 front = player.position().add(horiz);
+        stalker.moveTo(front.x, player.getY(), front.z, player.getYRot() + 180.0F, 0.0F);
+        faceStalkerAtPlayer(stalker, player);
+
+        HorrorNet.sendSoundAt(player, "travel1", front, 1.0F, 1.0F); // 120blocksound1
+        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 1, false, false, true));
+        player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0, false, false, true));
+        player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 100, 0, false, false, true));
+
+        state.stalkerLookTicks = 0;
+        state.revealEndTick = player.level().getGameTime() + REVEAL_TICKS;
+
+        if (random.nextDouble() < STARE_KILL_CHANCE) {
+            scheduleKill(player, state, random);
+        }
+    }
+
+    // --- behaviours ----------------------------------------------------------------------------
+
+    private static void tickEffect(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
+                                   HorrorConfig config, Random random) {
+        final double radius = config.entity.despawnTriggerRadius;
+        if (player.distanceToSqr(stalker) <= radius * radius) {
+            // A proper "event": a visual lightning crack, a sting, and a hex.
+            strikeLightning(player.serverLevel(), player.position());
+            HorrorNet.sendSound2D(player, "jumpscare" + (1 + random.nextInt(4)), 0.7F, 0.9F);
+            stalker.discard();
+            clear(state);
+            applyProximityEffects(player, config, random);
+            return;
+        }
+        handleRelocate(player, state, config, random);
+    }
+
+    private static void tickVanish(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
+                                   HorrorConfig config) {
+        final double r = config.entity.despawnTriggerRadius;
+        if (player.distanceToSqr(stalker) <= r * r) {
+            stalker.discard();
+            clear(state);
+            return;
+        }
+        handleRelocate(player, state, config, new Random());
+    }
+
+    private static void tickRush(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state, Random random) {
+        final Vec3 from = stalker.position();
+        final Vec3 to = player.position();
+        if (from.distanceTo(to) <= RUSH_KILL_DISTANCE) {
+            // Jumpscare and vanish now; death follows one second later.
+            scheduleKill(player, state, random);
+            stalker.discard();
+            clear(state);
+            return;
+        }
+        if (state.stalkerAgeTicks > RUSH_TIMEOUT_TICKS) {
+            stalker.discard();
+            clear(state);
+            return;
+        }
+        final Vec3 next = from.add(to.subtract(from).normalize().scale(RUSH_SPEED));
+        stalker.moveTo(next.x, next.y, next.z, stalker.getYRot(), 0.0F);
+    }
+
+    private static void tickWatch(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
+                                  HorrorConfig config, Random random) {
+        if (player.distanceToSqr(stalker) <= config.entity.despawnTriggerRadius * (double) config.entity.despawnTriggerRadius) {
+            stalker.discard();
+            clear(state);
+            return;
+        }
+        if (state.stalkerAgeTicks > WATCH_TIMEOUT_TICKS) {
+            stalker.discard();
+            clear(state);
+        }
+    }
+
+    private static void scheduleKill(ServerPlayer player, PlayerHorrorState state, Random random) {
+        HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 14);
+        state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
+    }
+
+    private static void strikeLightning(ServerLevel level, Vec3 near) {
+        final LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
+        if (bolt != null) {
+            bolt.moveTo(near.x, near.y, near.z);
+            bolt.setVisualOnly(true);
+            level.addFreshEntity(bolt);
+        }
+    }
+
     // --- spawning ------------------------------------------------------------------------------
 
     private static void trySpawn(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
@@ -118,6 +249,7 @@ public final class StalkerManager {
         if (pos != null && spawnAt(player, level, state, pos)) {
             state.stalkerBehavior = behavior;
             state.stalkerAgeTicks = 0;
+            state.stalkerLookTicks = 0;
         }
     }
 
@@ -125,22 +257,19 @@ public final class StalkerManager {
     private static BlockPos positionFor(StalkerBehavior behavior, ServerPlayer player, PlayerHorrorState state,
                                         HorrorConfig config, Random random, boolean debugClose) {
         return switch (behavior) {
-            case WATCH -> SpawnLocator.findBehind(player, random, 3, 7);          // right behind them
-            case RUSH -> SpawnLocator.findSpawn(player, random,
-                    debugClose ? 8 : 14, debugClose ? 20 : 34);                   // visible, then sprints
+            case WATCH -> SpawnLocator.findBehind(player, random, 3, 7);
+            case RUSH -> SpawnLocator.findSpawn(player, random, debugClose ? 8 : 14, debugClose ? 20 : 34);
             default -> debugClose
                     ? SpawnLocator.findSpawn(player, random, 10, 25)
                     : choosePosition(player, state, config, random);
         };
     }
 
-    /** Adaptive placement for the passive archetypes (AFK -> behind, mining/camping -> open sky). */
     @Nullable
     private static BlockPos choosePosition(ServerPlayer player, PlayerHorrorState state,
                                            HorrorConfig config, Random random) {
         final int min = config.entity.spawnDistanceMin;
         final int max = config.entity.spawnDistanceMax;
-
         if (state.behavior.afkTicks >= (long) config.entity.afkAppearSeconds * 20L) {
             final BlockPos behind = SpawnLocator.findBehind(player, random, 6, 14);
             if (behind != null) {
@@ -175,105 +304,6 @@ public final class StalkerManager {
         return true;
     }
 
-    // --- behaviours ----------------------------------------------------------------------------
-
-    private static void tickEffect(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
-                                   HorrorConfig config, Random random) {
-        faceStalkerAtPlayer(stalker, player);
-        final double radius = config.entity.despawnTriggerRadius;
-        if (player.distanceToSqr(stalker) <= radius * radius) {
-            stalker.discard();
-            clear(state);
-            if (random.nextDouble() < config.entity.proximityEffectChance) {
-                applyProximityEffects(player, config, random);
-            }
-            return;
-        }
-        handleRelocate(player, state, config, random);
-    }
-
-    private static void tickVanish(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
-                                   HorrorConfig config, Random random) {
-        faceStalkerAtPlayer(stalker, player);
-        if (player.distanceToSqr(stalker) <= config.entity.despawnTriggerRadius * (double) config.entity.despawnTriggerRadius) {
-            stalker.discard();
-            clear(state);
-            return;
-        }
-        handleRelocate(player, state, config, random);
-    }
-
-    private static void tickRush(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
-                                 HorrorConfig config, Random random) {
-        final Vec3 from = stalker.position();
-        final Vec3 to = player.position();
-        final double dist = from.distanceTo(to);
-
-        if (dist <= RUSH_KILL_DISTANCE) {
-            killPlayer(player, random);
-            stalker.discard();
-            clear(state);
-            return;
-        }
-        if (state.stalkerAgeTicks > RUSH_TIMEOUT_TICKS) {
-            stalker.discard(); // the player outran it
-            clear(state);
-            return;
-        }
-        final Vec3 step = to.subtract(from).normalize().scale(RUSH_SPEED);
-        final Vec3 next = from.add(step);
-        final float yaw = (float) Math.toDegrees(Math.atan2(-(to.x - next.x), to.z - next.z));
-        stalker.moveTo(next.x, next.y, next.z, yaw, 0.0F);
-        stalker.setYHeadRot(yaw);
-    }
-
-    private static void tickWatch(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
-                                  HorrorConfig config, Random random) {
-        faceStalkerAtPlayer(stalker, player);
-
-        final Vec3 look = player.getLookAngle();
-        final Vec3 toStalker = stalker.position().add(0, stalker.getBbHeight() * 0.5, 0)
-                .subtract(player.getEyePosition()).normalize();
-        final boolean playerLooking = look.dot(toStalker) >= WATCH_LOOK_DOT
-                && player.distanceToSqr(stalker) <= 64 * 64;
-
-        if (playerLooking) {
-            // Caught looking - react with one of the other behaviours.
-            final int roll = random.nextInt(100);
-            if (roll < 40) {                 // vanish
-                stalker.discard();
-                clear(state);
-            } else if (roll < 75) {          // brief effect, then vanish
-                stalker.discard();
-                clear(state);
-                applyProximityEffects(player, config, random);
-            } else {                         // turn aggressive
-                state.stalkerBehavior = StalkerBehavior.RUSH;
-                state.stalkerAgeTicks = 0;
-            }
-            return;
-        }
-        if (state.stalkerAgeTicks > WATCH_TIMEOUT_TICKS) {
-            stalker.discard();
-            clear(state);
-        }
-    }
-
-    private static void killPlayer(ServerPlayer player, Random random) {
-        HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), KILL_JUMPSCARE_TICKS);
-        player.hurt(player.damageSources().genericKill(), Float.MAX_VALUE);
-    }
-
-    // --- helpers -------------------------------------------------------------------------------
-
-    private static void faceStalkerAtPlayer(StalkerEntity stalker, ServerPlayer player) {
-        final Vec3 s = stalker.position();
-        final float yaw = (float) Math.toDegrees(Math.atan2(-(player.getX() - s.x), player.getZ() - s.z));
-        stalker.setYRot(yaw);
-        stalker.setYHeadRot(yaw);
-        stalker.setYBodyRot(yaw);
-    }
-
     private static void trySpawnBesideBed(ServerPlayer player, ServerLevel level, PlayerHorrorState state) {
         final Optional<BlockPos> bed = player.getSleepingPos();
         if (bed.isEmpty()) {
@@ -287,16 +317,29 @@ public final class StalkerManager {
                 if (spawnAt(player, level, state, side)) {
                     state.stalkerBehavior = StalkerBehavior.WATCH;
                     state.stalkerAgeTicks = 0;
+                    state.stalkerLookTicks = 0;
                 }
                 return;
             }
         }
     }
 
+    // --- helpers -------------------------------------------------------------------------------
+
+    private static void faceStalkerAtPlayer(StalkerEntity stalker, ServerPlayer player) {
+        final Vec3 s = stalker.position();
+        final float yaw = (float) Math.toDegrees(Math.atan2(-(player.getX() - s.x), player.getZ() - s.z));
+        stalker.setYRot(yaw);
+        stalker.setYHeadRot(yaw);
+        stalker.setYBodyRot(yaw);
+    }
+
     private static void clear(PlayerHorrorState state) {
         state.activeStalkerId = null;
         state.stalkerBehavior = null;
         state.stalkerAgeTicks = 0;
+        state.stalkerLookTicks = 0;
+        state.revealEndTick = 0L;
     }
 
     private static void accountTravel(ServerPlayer player, PlayerHorrorState state) {

@@ -39,6 +39,15 @@ public final class MobLockManager {
             ChatFormatting.BLACK, ChatFormatting.WHITE, ChatFormatting.RED, ChatFormatting.DARK_RED
     };
 
+    /** Readable "hints" hidden among the noise. */
+    private static final String[] HINTS = {
+            "arkana bak", "kaçma", "seni görüyorum", "çok geç", "buradayım", "uyuma",
+            "geri dön", "yalnız değilsin", "duydun mu", "gülümse", "bana bakma", "koş"
+    };
+
+    /** One corrupted/hint line is broadcast every this-many ticks (~3 per second). */
+    private static final int MESSAGE_INTERVAL_TICKS = 7;
+
     private record Locked(Mob mob, boolean originalNoAi) {
     }
 
@@ -141,11 +150,14 @@ public final class MobLockManager {
             }
         }
 
-        // Spread the corrupted messages evenly across the lock.
+        // Flood the chat at ~3 lines/second; roughly one in six is a readable hint.
         final int elapsed = durationTicks - lockTicksRemaining;
-        final int target = (int) ((long) config.mobLock.chatMessageCount * elapsed / durationTicks);
-        while (messagesSent < target) {
-            broadcastCorrupted(server);
+        if (elapsed % MESSAGE_INTERVAL_TICKS == 0) {
+            if (RNG.nextInt(6) == 0) {
+                broadcastHint(server);
+            } else {
+                broadcastCorrupted(server);
+            }
             messagesSent++;
         }
 
@@ -179,6 +191,14 @@ public final class MobLockManager {
         final ChatFormatting color = COLORS[RNG.nextInt(COLORS.length)];
         final Component message = Component.literal(sb.toString())
                 .withStyle(ChatFormatting.OBFUSCATED, color);
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            player.sendSystemMessage(message);
+        }
+    }
+
+    private static void broadcastHint(MinecraftServer server) {
+        final Component message = Component.literal("<null> " + HINTS[RNG.nextInt(HINTS.length)])
+                .withStyle(ChatFormatting.WHITE);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             player.sendSystemMessage(message);
         }

@@ -22,7 +22,7 @@ public final class FakePlayerEvent implements HorrorEvent {
 
     @Override
     public int minDay() {
-        return 6;
+        return 4;
     }
 
     @Override

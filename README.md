@@ -96,6 +96,7 @@ All commands require permission level 2 (single-player: enable cheats). Base com
 | `/ahe sound <name>` | Play a registered sound (`scary_ambient`, `iseeyou`, `travel1`, …) |
 | `/ahe nulljoin` | Force `null` to join now (skip the 5–10 min wait), unlocking the haunting |
 | `/ahe moblock` | Force the "everything stares" lock event right now |
+| `/ahe assault` | Force a mob assault (nearby mobs turn hostile and attack) |
 | `/ahe status` | Print your live state: day, intensity, whether null joined, vigilance, AFK, active entity |
 | `/ahe day` | Print the in-game day and current intensity |
 | `/ahe disclaimer` | Re-show the disclaimer screen |
@@ -117,6 +118,24 @@ intensity, debug mode) lives there — there are no hardcoded timers in the logi
   *Weakness*; the effect pool is one constant in `StalkerManager`.
 - **"Frame-perfect" audio/image sync:** Minecraft streams audio asynchronously, so exact frame sync
   isn't guaranteed by the engine. Events are triggered same-tick, which is as tight as it allows.
+
+## Encounter behaviours & escalation
+
+- **Stalker archetypes** (rolled per spawn): EFFECT 47% (lightning + hex + sting, then vanish),
+  VANISH 25%, WATCH 25% (spawns close behind), RUSH **3%** (the only lethal routine).
+- **The enderman rule** (any form): stare at it for 2s → it teleports right in front of you, plays a
+  sting, inflicts slowness/blindness/nausea (5s) and vanishes; 5% chance it turns lethal.
+- **RUSH death**: reaches 1 block → jumpscare + vanish, then you die ~1s later.
+- **Jumpscare side-effects**: 10% the game window shakes / shrinks / grows on its own; **1% the game
+  crashes** (rare, deliberate).
+- **Mob lock** ("everything stares"): every 5 min / 25%, all mobs within 4 chunks freeze and stare
+  for 30s while chat floods (~3 lines/s, corrupted + hidden hints) and `iseeyou` plays.
+- **Night assault**: at night, 3%/min, nearby mobs turn hostile for a minute (weak); a mob kill →
+  jumpscare. **From day 10**, this is permanent (day & night) and spawns triple.
+- **Inventory drop**: from day 4, every 10 min / 15%, null flings your held stack or empties your
+  whole inventory onto the ground.
+- **Personal sign**: 25% of sign events write your **computer name, city and country** + "yakınındayım".
+- All `null` chat reads like a real player: `<null> …` in white.
 
 ## Implemented systems
 - **Core stalking entity** — peripheral spawn (80-100 blocks), instant despawn within 25 blocks with

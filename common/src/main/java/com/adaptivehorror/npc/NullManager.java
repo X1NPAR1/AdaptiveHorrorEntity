@@ -77,7 +77,7 @@ public final class NullManager {
     /** Server-tick driver. Idempotent within a tick. Arms the timer once a player has accepted. */
     public static void tick(MinecraftServer server) {
         final HorrorConfig config = ConfigManager.get();
-        if (!config.enabled || !config.nullEntity.enabled || joined) {
+        if (!config.enabled || !config.nullEntity.enabled) {
             return;
         }
         final long now = server.overworld().getGameTime();
@@ -85,6 +85,19 @@ public final class NullManager {
             return;
         }
         lastProcessedTick = now;
+
+        if (joined) {
+            // Re-assert the tab entry every 5s so clients that prune unknown entries keep showing it.
+            if (now % 100L == 0L) {
+                final ClientboundPlayerInfoUpdatePacket packet = buildAddPacket();
+                if (packet != null) {
+                    for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                        player.connection.send(packet);
+                    }
+                }
+            }
+            return;
+        }
 
         if (joinAtTick < 0L) {
             if (anyPlayerAccepted(server)) {
@@ -155,7 +168,7 @@ public final class NullManager {
         }
 
         final ClientboundPlayerInfoUpdatePacket.Entry entry = new ClientboundPlayerInfoUpdatePacket.Entry(
-                NULL_UUID, profile, true, 0, GameType.SURVIVAL,
+                NULL_UUID, profile, true, 5, GameType.SURVIVAL,
                 Component.literal(ConfigManager.get().nullEntity.name), null);
 
         try {

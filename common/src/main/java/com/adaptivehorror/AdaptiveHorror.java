@@ -38,6 +38,9 @@ public final class AdaptiveHorror {
         // Replace the logging stub with the real network-backed effect dispatcher.
         EffectDispatcher.ACTIVE.set(new NetworkEffectDispatcher());
 
+        // Warm the (async, best-effort) geo lookup used by the personalised sign.
+        com.adaptivehorror.util.PlayerLocationService.ensureStarted();
+
         LOGGER.info("[{}] Common bootstrap complete.", Constants.MOD_NAME);
     }
 }

@@ -42,7 +42,10 @@ foreach ($src in $audioMap.Keys) {
     if (-not (Test-Path $in)) { Write-Warning "missing audio: $src (skipped)"; continue }
     $out = Join-Path $soundsOut ($audioMap[$src] + ".ogg")
     Write-Host "audio  $src -> $($audioMap[$src]).ogg"
-    & ffmpeg -y -loglevel error -i $in -c:a libvorbis -q:a 5 $out
+    # -vn strips any embedded cover art (mp3 album art becomes a video stream that Minecraft's OGG
+    # decoder chokes on - the usual reason a converted sound silently fails to play). Mono + 44.1kHz
+    # is the safe, universally-decodable format and lets positional sounds spatialise correctly.
+    & ffmpeg -y -loglevel error -i $in -vn -ac 1 -ar 44100 -c:a libvorbis -q:a 6 $out
 }
 
 # image source (root) -> gui texture name. PNGs are re-encoded to guarantee a valid RGBA PNG.

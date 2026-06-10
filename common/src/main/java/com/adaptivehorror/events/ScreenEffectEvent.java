@@ -19,7 +19,7 @@ public final class ScreenEffectEvent implements HorrorEvent {
 
     @Override
     public int minDay() {
-        return 5;
+        return 1;
     }
 
     @Override
@@ -46,8 +46,8 @@ public final class ScreenEffectEvent implements HorrorEvent {
                 HorrorNet.sendGlitch(p, 3 + ctx.random.nextInt(5));
                 break;
             default:
-                // Real world-camera shake: a brief, subtle tremor.
-                HorrorNet.sendCameraShake(p, 6 + ctx.random.nextInt(8), 0.8F + ctx.random.nextFloat());
+                // Real world-camera shake: a clearly-felt tremor (degrees of jitter).
+                HorrorNet.sendCameraShake(p, 20 + ctx.random.nextInt(20), 3.0F + ctx.random.nextFloat() * 3.0F);
                 break;
         }
     }

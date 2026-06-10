@@ -48,6 +48,15 @@ public final class ClientHorrorManager {
     private int shakeMaxTicks;
     private float shakeIntensity;
 
+    // Window torment (10% of jumpscares) and the rare crash (1%).
+    private boolean pendingCrash;
+    private int windowFxTicks;
+    private int origWinW, origWinH, origWinX, origWinY;
+    private boolean windowSaved;
+
+    private static final double CRASH_CHANCE = 0.01;
+    private static final double WINDOW_FX_CHANCE = 0.10;
+
     private ClientHorrorManager() {
     }
 
@@ -58,6 +67,15 @@ public final class ClientHorrorManager {
         this.jumpscareTicks = durationTicks;
         this.jumpscareMaxTicks = Math.max(1, durationTicks);
         playSound2D(jumpscareSoundPath(soundIndex), 1.0F, 1.0F);
+
+        // Rarely, the game "breaks": a 1% hard crash, or a 10% spell where the window itself shakes,
+        // shrinks and grows on its own.
+        final double roll = random.nextDouble();
+        if (roll < CRASH_CHANCE) {
+            pendingCrash = true;
+        } else if (roll < CRASH_CHANCE + WINDOW_FX_CHANCE) {
+            startWindowTorment();
+        }
     }
 
     public void playSound2D(String path, float volume, float pitch) {
@@ -153,6 +171,61 @@ public final class ClientHorrorManager {
                 shakeIntensity = 0.0F;
             }
         }
+        if (pendingCrash) {
+            pendingCrash = false;
+            crashGame();
+        }
+        if (windowFxTicks > 0) {
+            tickWindowTorment();
+        }
+    }
+
+    // --- window torment / crash ----------------------------------------------------------------
+
+    private void startWindowTorment() {
+        try {
+            final long handle = mc.getWindow().getWindow();
+            final int[] w = new int[1];
+            final int[] h = new int[1];
+            final int[] x = new int[1];
+            final int[] y = new int[1];
+            org.lwjgl.glfw.GLFW.glfwGetWindowSize(handle, w, h);
+            org.lwjgl.glfw.GLFW.glfwGetWindowPos(handle, x, y);
+            origWinW = w[0];
+            origWinH = h[0];
+            origWinX = x[0];
+            origWinY = y[0];
+            windowSaved = true;
+            windowFxTicks = 60; // ~3 seconds of torment
+        } catch (Throwable ignored) {
+            // Window manipulation is best-effort; never let it break rendering.
+        }
+    }
+
+    private void tickWindowTorment() {
+        windowFxTicks--;
+        try {
+            final long handle = mc.getWindow().getWindow();
+            if (windowFxTicks <= 0) {
+                if (windowSaved) {
+                    org.lwjgl.glfw.GLFW.glfwSetWindowSize(handle, origWinW, origWinH);
+                    org.lwjgl.glfw.GLFW.glfwSetWindowPos(handle, origWinX, origWinY);
+                }
+                return;
+            }
+            final double scale = 0.7 + random.nextDouble() * 0.6; // shrink and grow
+            org.lwjgl.glfw.GLFW.glfwSetWindowSize(handle,
+                    Math.max(320, (int) (origWinW * scale)), Math.max(240, (int) (origWinH * scale)));
+            org.lwjgl.glfw.GLFW.glfwSetWindowPos(handle,
+                    origWinX + random.nextInt(61) - 30, origWinY + random.nextInt(61) - 30); // shake
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private void crashGame() {
+        final net.minecraft.CrashReport report =
+                net.minecraft.CrashReport.forThrowable(new RuntimeException("null"), "null");
+        throw new net.minecraft.ReportedException(report);
     }
 
     // --- HUD rendering -------------------------------------------------------------------------

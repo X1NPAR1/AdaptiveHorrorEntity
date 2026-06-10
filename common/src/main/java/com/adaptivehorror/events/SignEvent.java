@@ -3,6 +3,7 @@ package com.adaptivehorror.events;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.scheduler.EventContext;
 import com.adaptivehorror.scheduler.HorrorEvent;
+import com.adaptivehorror.util.PlayerLocationService;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
@@ -15,17 +16,42 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 /**
- * A lightning strike nearby leaves behind a sign bearing a localized message ("LOOK BEHIND", "I SEE
- * YOU"...). The bolt is visual-only (no fire, no damage). Sign text is a translatable component, so
- * every viewer reads it in their own language. Rare - never spammed.
+ * A lightning strike leaves behind a sign. Two flavours:
+ * <ul>
+ *   <li><b>Sign 1</b> (75%): one of twenty-five short, ominous messages.</li>
+ *   <li><b>Sign 2</b> (25%): the player's own computer name, city and country, and "I'm near you" -
+ *       the most personal scare in the mod.</li>
+ * </ul>
  */
 public final class SignEvent implements HorrorEvent {
 
-    private static final String[] KEYS = {
-            "adaptivehorror.sign.look_behind",
-            "adaptivehorror.sign.i_see_you",
-            "adaptivehorror.sign.go_home",
-            "adaptivehorror.sign.dont_sleep"
+    /** Twenty-five message variants, each up to four sign lines. */
+    private static final String[][] MESSAGES = {
+            {"ARKANA", "BAK"},
+            {"EVİNE", "GİT"},
+            {"SENİ", "GÖRÜYORUM"},
+            {"UYUMA"},
+            {"BURADAYIM"},
+            {"ÇOK", "GEÇ"},
+            {"KAÇAMAZSIN"},
+            {"YALNIZ", "DEĞİLSİN"},
+            {"BENİ", "GÖRDÜN", "MÜ"},
+            {"GERİ", "DÖN"},
+            {"DURMA", "KOŞ"},
+            {"İZLİYORUM"},
+            {"SESSİZ", "OL"},
+            {"O", "ARKANDA"},
+            {"GÖZLERİNİ", "KAPAT"},
+            {"GELİYORUM"},
+            {"SAKLAN"},
+            {"NEFES", "ALMA"},
+            {"DUYDUN", "MU"},
+            {"HÂLÂ", "BURADAYIM"},
+            {"ÇIKIŞ", "YOK"},
+            {"BANA", "BAKMA"},
+            {"SON", "GECE"},
+            {"BENİMLE", "GEL"},
+            {"GÜLÜMSE"}
     };
 
     @Override
@@ -35,7 +61,7 @@ public final class SignEvent implements HorrorEvent {
 
     @Override
     public int minDay() {
-        return 3;
+        return 2;
     }
 
     @Override
@@ -45,7 +71,7 @@ public final class SignEvent implements HorrorEvent {
 
     @Override
     public double weight(EventContext ctx) {
-        return 0.6;
+        return 0.8;
     }
 
     @Override
@@ -62,19 +88,41 @@ public final class SignEvent implements HorrorEvent {
             ctx.level.addFreshEntity(bolt);
         }
 
-        final int rotation = ctx.random.nextInt(16);
         final BlockState sign = Blocks.OAK_SIGN.defaultBlockState()
-                .setValue(StandingSignBlock.ROTATION, rotation);
+                .setValue(StandingSignBlock.ROTATION, ctx.random.nextInt(16));
         ctx.level.setBlock(pos, sign, 3);
 
         if (ctx.level.getBlockEntity(pos) instanceof SignBlockEntity be) {
-            // 1.21 sign text is an immutable SignText; build a new one with the message on line 1.
-            final SignText text = be.getFrontText()
-                    .setMessage(1, Component.translatable(KEYS[ctx.random.nextInt(KEYS.length)]));
+            final String[] lines = ctx.random.nextFloat() < 0.75F ? randomMessage(ctx) : personalLines(ctx);
+            SignText text = be.getFrontText();
+            for (int i = 0; i < 4; i++) {
+                text = text.setMessage(i, Component.literal(i < lines.length ? lines[i] : ""));
+            }
             be.setText(text, true);
             be.setChanged();
             ctx.level.sendBlockUpdated(pos, sign, sign, 3);
         }
+    }
+
+    private static String[] randomMessage(EventContext ctx) {
+        return MESSAGES[ctx.random.nextInt(MESSAGES.length)];
+    }
+
+    /** Sign 2: the personalised message. Long values are clipped to a sign-sane width. */
+    private static String[] personalLines(EventContext ctx) {
+        return new String[]{
+                clip(PlayerLocationService.hostName()),
+                clip(PlayerLocationService.city()),
+                clip(PlayerLocationService.country()),
+                "yakınındayım"
+        };
+    }
+
+    private static String clip(String s) {
+        if (s == null || s.isEmpty()) {
+            return "?";
+        }
+        return s.length() > 15 ? s.substring(0, 15) : s;
     }
 
     private static BlockPos nearbyGround(EventContext ctx) {
@@ -86,8 +134,7 @@ public final class SignEvent implements HorrorEvent {
             }
             final int y = ctx.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
             final BlockPos pos = new BlockPos(x, y, z);
-            if (ctx.level.getBlockState(pos).isAir()
-                    && ctx.level.getBlockState(pos.below()).isSolid()) {
+            if (ctx.level.getBlockState(pos).isAir() && ctx.level.getBlockState(pos.below()).isSolid()) {
                 return pos;
             }
         }

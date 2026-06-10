@@ -22,7 +22,7 @@ public final class JumpscareEvent implements HorrorEvent {
 
     @Override
     public int minDay() {
-        return 5;
+        return 3;
     }
 
     @Override

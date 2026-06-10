@@ -2,6 +2,7 @@ package com.adaptivehorror.fabric;
 
 import com.adaptivehorror.AdaptiveHorror;
 import com.adaptivehorror.command.HorrorCommands;
+import com.adaptivehorror.event.AssaultManager;
 import com.adaptivehorror.event.MobLockManager;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.FabricNetworkHelper;
@@ -33,6 +34,7 @@ public final class AdaptiveHorrorFabric implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
             NullManager.reset();
             MobLockManager.reset();
+            AssaultManager.reset();
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
