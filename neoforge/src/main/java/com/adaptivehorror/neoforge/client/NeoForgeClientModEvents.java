@@ -3,6 +3,8 @@ package com.adaptivehorror.neoforge.client;
 import com.adaptivehorror.Constants;
 import com.adaptivehorror.client.FakePlayerRenderer;
 import com.adaptivehorror.client.ModModelLayers;
+import com.adaptivehorror.client.NullBossModel;
+import com.adaptivehorror.client.NullBossRenderer;
 import com.adaptivehorror.client.StalkerModel;
 import com.adaptivehorror.client.StalkerRenderer;
 import com.adaptivehorror.registry.ModEntities;
@@ -22,10 +24,12 @@ public final class NeoForgeClientModEvents {
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.STALKER, StalkerRenderer::new);
         event.registerEntityRenderer(ModEntities.FAKE_PLAYER, FakePlayerRenderer::new);
+        event.registerEntityRenderer(ModEntities.NULL_BOSS, NullBossRenderer::new);
     }
 
     @SubscribeEvent
     public static void onRegisterLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {
         event.registerLayerDefinition(ModModelLayers.STALKER, StalkerModel::createBodyLayer);
+        event.registerLayerDefinition(ModModelLayers.NULL_BOSS, NullBossModel::createBodyLayer);
     }
 }

@@ -5,12 +5,16 @@ import com.adaptivehorror.command.HorrorCommands;
 import com.adaptivehorror.event.AssaultManager;
 import com.adaptivehorror.event.MobDeathHorror;
 import com.adaptivehorror.event.MobLockManager;
+import com.adaptivehorror.event.TotemManager;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.FabricNetworkHelper;
 import com.adaptivehorror.scheduler.HorrorScheduler;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Items;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -39,7 +43,16 @@ public final class AdaptiveHorrorFabric implements ModInitializer {
             NullManager.reset();
             MobLockManager.reset();
             AssaultManager.reset();
+            TotemManager.reset();
             com.adaptivehorror.event.TargetingManager.reset();
+        });
+
+        UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
+            if (world instanceof ServerLevel sl && player instanceof ServerPlayer sp
+                    && player.getItemInHand(hand).is(Items.FLINT_AND_STEEL)) {
+                TotemManager.onLitWithFlintAndSteel(sl, hit.getBlockPos(), hit.getDirection(), sp);
+            }
+            return InteractionResult.PASS;
         });
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->

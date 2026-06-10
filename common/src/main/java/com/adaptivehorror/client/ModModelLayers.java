@@ -13,6 +13,9 @@ public final class ModModelLayers {
     public static final ModelLayerLocation STALKER =
             new ModelLayerLocation(Constants.id("stalker"), "main");
 
+    public static final ModelLayerLocation NULL_BOSS =
+            new ModelLayerLocation(Constants.id("null_boss"), "main");
+
     private ModModelLayers() {
     }
 }

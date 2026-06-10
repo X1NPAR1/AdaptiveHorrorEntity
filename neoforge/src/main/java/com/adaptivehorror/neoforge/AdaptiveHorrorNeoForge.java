@@ -6,6 +6,7 @@ import com.adaptivehorror.command.HorrorCommands;
 import com.adaptivehorror.event.AssaultManager;
 import com.adaptivehorror.event.MobDeathHorror;
 import com.adaptivehorror.event.MobLockManager;
+import com.adaptivehorror.event.TotemManager;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.platform.NeoForgeNetworkHelper;
 import com.adaptivehorror.platform.NeoForgeRegistryHelper;
@@ -19,6 +20,8 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
@@ -52,7 +55,17 @@ public final class AdaptiveHorrorNeoForge {
         NullManager.reset();
         MobLockManager.reset();
         AssaultManager.reset();
+        TotemManager.reset();
         com.adaptivehorror.event.TargetingManager.reset();
+    }
+
+    @SubscribeEvent
+    public void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel() instanceof ServerLevel level
+                && event.getEntity() instanceof ServerPlayer player
+                && event.getItemStack().is(Items.FLINT_AND_STEEL)) {
+            TotemManager.onLitWithFlintAndSteel(level, event.getPos(), event.getFace(), player);
+        }
     }
 
     @SubscribeEvent

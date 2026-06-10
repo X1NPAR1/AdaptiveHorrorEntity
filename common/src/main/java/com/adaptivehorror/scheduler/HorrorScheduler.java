@@ -72,15 +72,19 @@ public final class HorrorScheduler {
         if (!DisclaimerState.get(player.serverLevel()).hasAccepted(player.getUUID())) {
             return;
         }
-        // Gate 2: the haunting only begins once "null" has joined.
-        if (config.nullEntity.enabled && !NullManager.hasJoined()) {
-            return;
-        }
 
         final PlayerHorrorState state =
                 STATES.computeIfAbsent(player.getUUID(), PlayerHorrorState::new);
 
+        // Deferred steps (totem ritual lightning/boss spawn, multi-beat events) must always drain,
+        // even before null has joined or after it has been defeated - they are not gated by the haunting.
         drainScheduled(player, state);
+
+        // Gate 2: the haunting itself only begins once "null" has joined.
+        if (config.nullEntity.enabled && !NullManager.hasJoined()) {
+            return;
+        }
+
         BehaviorSampler.sample(player, state);
 
         final int day = DayProgression.dayOf(player.level());

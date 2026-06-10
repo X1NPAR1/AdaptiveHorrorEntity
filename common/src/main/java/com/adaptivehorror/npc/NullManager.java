@@ -46,6 +46,8 @@ public final class NullManager {
     private static volatile State state = State.NOT_JOINED;
     private static long timerTick = -1L;        // join / leave / rejoin deadline depending on state
     private static long lastProcessedTick = Long.MIN_VALUE;
+    /** Once the boss is beaten, null is gone for good until a player re-invites it on the diamond totem. */
+    private static volatile boolean defeated = false;
 
     @SuppressWarnings("unchecked")
     private static Constructor<ClientboundPlayerInfoUpdatePacket> resolveCtor() {
@@ -73,12 +75,34 @@ public final class NullManager {
         state = State.NOT_JOINED;
         timerTick = -1L;
         lastProcessedTick = Long.MIN_VALUE;
+        defeated = false;
+    }
+
+    /** The boss was beaten: null leaves and never returns until re-invited. */
+    public static void defeat(MinecraftServer server) {
+        defeated = true;
+        state = State.NOT_JOINED;
+        timerTick = -1L;
+        final ClientboundPlayerInfoRemovePacket remove = new ClientboundPlayerInfoRemovePacket(List.of(NULL_UUID));
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            player.connection.send(remove);
+        }
+    }
+
+    /** A player re-invited null on the diamond totem: it joins again immediately. */
+    public static void invite(MinecraftServer server) {
+        defeated = false;
+        join(server, ConfigManager.get(), server.overworld().getGameTime());
+    }
+
+    public static boolean isDefeated() {
+        return defeated;
     }
 
     public static void tick(MinecraftServer server) {
         final HorrorConfig config = ConfigManager.get();
-        if (!config.enabled || !config.nullEntity.enabled) {
-            return;
+        if (!config.enabled || !config.nullEntity.enabled || defeated) {
+            return; // beaten: stays gone until re-invited
         }
         final long now = server.overworld().getGameTime();
         if (now == lastProcessedTick) {

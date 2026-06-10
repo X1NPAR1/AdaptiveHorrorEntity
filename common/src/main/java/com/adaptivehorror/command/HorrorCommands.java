@@ -72,6 +72,7 @@ public final class HorrorCommands {
                         .then(Commands.literal("assault").executes(HorrorCommands::assault))
                         .then(Commands.literal("disclaimer").executes(HorrorCommands::disclaimer))
                         .then(Commands.literal("clear").executes(HorrorCommands::clear))
+                        .then(Commands.literal("boss").executes(HorrorCommands::boss))
                         .then(Commands.literal("version").executes(HorrorCommands::version))
                         .then(Commands.literal("reload").executes(HorrorCommands::reload)));
 
@@ -183,6 +184,24 @@ public final class HorrorCommands {
         StalkerManager.despawn(player.serverLevel(), s);
         com.adaptivehorror.spawn.WatcherManager.despawnAll(player.serverLevel(), s);
         feedback(ctx, "Çevredeki tüm null'lar temizlendi.");
+        return 1;
+    }
+
+    /** Summons the null boss directly at the player (test shortcut for the redstone-totem ritual). */
+    private static int boss(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        final ServerPlayer player = ctx.getSource().getPlayerOrException();
+        final var level = player.serverLevel();
+        final com.adaptivehorror.entity.NullBossEntity b =
+                com.adaptivehorror.registry.ModEntities.NULL_BOSS.create(level);
+        if (b == null) {
+            feedback(ctx, "Boss oluşturulamadı.");
+            return 0;
+        }
+        b.moveTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
+        b.setTotemPos(player.blockPosition());
+        level.addFreshEntity(b);
+        b.roar(level);
+        feedback(ctx, "null boss çağrıldı (can 1500).");
         return 1;
     }
 

@@ -17,6 +17,7 @@ import com.adaptivehorror.events.PhantomBiteEvent;
 import com.adaptivehorror.events.ColdPresenceEvent;
 import com.adaptivehorror.events.CreepingDarknessEvent;
 import com.adaptivehorror.events.DistantScreamEvent;
+import com.adaptivehorror.events.ForestFireEvent;
 import com.adaptivehorror.events.NullBreathingEvent;
 import com.adaptivehorror.events.PhantomExplosionEvent;
 import com.adaptivehorror.events.SurroundWhispersEvent;
@@ -96,6 +97,7 @@ public final class EventRegistry {
         register(new OminousItemEvent());       // day 4+ (a token left at your feet)
         register(new InventoryShuffleEvent());  // day 5+ (your items moved)
         register(new PhantomBiteEvent());       // day 6+ (something snapped at you)
+        register(new ForestFireEvent());        // day 3+ (the woods catch fire)
     }
 
     private EventRegistry() {

@@ -2,6 +2,7 @@ package com.adaptivehorror.registry;
 
 import com.adaptivehorror.Constants;
 import com.adaptivehorror.entity.FakePlayerEntity;
+import com.adaptivehorror.entity.NullBossEntity;
 import com.adaptivehorror.entity.StalkerEntity;
 import com.adaptivehorror.platform.Services;
 import net.minecraft.world.entity.EntityType;
@@ -16,6 +17,7 @@ public final class ModEntities {
 
     public static EntityType<StalkerEntity> STALKER;
     public static EntityType<FakePlayerEntity> FAKE_PLAYER;
+    public static EntityType<NullBossEntity> NULL_BOSS;
 
     private ModEntities() {
     }
@@ -41,5 +43,16 @@ public final class ModEntities {
                         .updateInterval(3)
                         .build("fake_player"),
                 FakePlayerEntity::createAttributes);
+
+        NULL_BOSS = Services.REGISTRY.registerEntity(
+                Constants.id("null_boss"),
+                () -> EntityType.Builder
+                        .<NullBossEntity>of(NullBossEntity::new, MobCategory.MONSTER)
+                        .sized(0.7F, 2.1F)
+                        .clientTrackingRange(32)
+                        .updateInterval(2)
+                        .fireImmune()
+                        .build("null_boss"),
+                NullBossEntity::createAttributes);
     }
 }

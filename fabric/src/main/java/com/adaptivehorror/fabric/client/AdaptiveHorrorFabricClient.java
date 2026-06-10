@@ -3,6 +3,8 @@ package com.adaptivehorror.fabric.client;
 import com.adaptivehorror.client.ClientHorrorManager;
 import com.adaptivehorror.client.FakePlayerRenderer;
 import com.adaptivehorror.client.ModModelLayers;
+import com.adaptivehorror.client.NullBossModel;
+import com.adaptivehorror.client.NullBossRenderer;
 import com.adaptivehorror.client.StalkerModel;
 import com.adaptivehorror.client.StalkerRenderer;
 import com.adaptivehorror.platform.FabricNetworkHelper;
@@ -23,9 +25,11 @@ public final class AdaptiveHorrorFabricClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         EntityModelLayerRegistry.registerModelLayer(ModModelLayers.STALKER, StalkerModel::createBodyLayer);
+        EntityModelLayerRegistry.registerModelLayer(ModModelLayers.NULL_BOSS, NullBossModel::createBodyLayer);
 
         EntityRendererRegistry.register(ModEntities.STALKER, StalkerRenderer::new);
         EntityRendererRegistry.register(ModEntities.FAKE_PLAYER, FakePlayerRenderer::new);
+        EntityRendererRegistry.register(ModEntities.NULL_BOSS, NullBossRenderer::new);
 
         FabricNetworkHelper.registerClientReceiver();
 
