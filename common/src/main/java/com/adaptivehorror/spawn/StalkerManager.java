@@ -41,6 +41,8 @@ public final class StalkerManager {
     private static final int FRONT_SLEEP_TIMEOUT = 400;    // ~20s
     private static final int BEHIND_MIN = 6;
     private static final int BEHIND_MAX = 15;
+    /** Trigger radius for the <em>close</em> forms (behind/window/cave) - smaller than the far 25. */
+    private static final double CLOSE_VANISH = 6.0;
     private static final int RESPAWN_MIN_SECONDS = 15;
     private static final int RESPAWN_MAX_SECONDS = 60;
     private static final double FOLLOW_DISTANCE = 200.0;    // wander this far -> it relocates near you
@@ -76,9 +78,17 @@ public final class StalkerManager {
             return;
         }
 
-        active.setNightForm(cave || !level.isDay()); // always black underground
+        active.setNightForm(cave || !level.isDay() || state.stalkerBlack); // black underground / forced
         state.stalkerAgeTicks++;
         facePlayer(active, player);
+
+        // At dawn the close night forms move off to the distant day-watcher position, so a white null
+        // never just stands a few blocks away.
+        if (level.isDay() && (state.stalkerBehavior == StalkerBehavior.BEHIND
+                || state.stalkerBehavior == StalkerBehavior.WINDOW)) {
+            relocateFar(player, level, state, config, random);
+            return;
+        }
 
         // If the player wandered far away, the null relocates to a fresh spot near them. (Not for the
         // cave form, which stays at the player's level and just vanishes/respawns.)
@@ -89,7 +99,11 @@ public final class StalkerManager {
 
         switch (state.stalkerBehavior == null ? StalkerBehavior.FAR : state.stalkerBehavior) {
             case CAVE -> {
-                if (withinVanish(player, active, config) || staring(player, active, state)) {
+                if (state.stalkerRush) {
+                    tickCaveRush(player, active, state, random); // tunnel ambush: it charges you
+                } else if (nearby(player, active, CLOSE_VANISH) || staring(player, active, state)) {
+                    // Close form: a small radius or a stare - never the big 25-block one, or it would
+                    // vanish the instant it spawned in a tight cave.
                     triggerReaction(player, active, state, config, random);
                 } else if (state.stalkerAgeTicks > NEAR_TIMEOUT) {
                     vanish(active, player, state, random); // re-appears in the cave after the gap
@@ -109,14 +123,14 @@ public final class StalkerManager {
             }
             case BEHIND -> {
                 // Vanishes the moment you turn and look at it - or if you back right into it.
-                if (staring(player, active, state) || player.distanceToSqr(active) <= 25.0) {
+                if (staring(player, active, state) || nearby(player, active, CLOSE_VANISH)) {
                     triggerReaction(player, active, state, config, random);
                 } else if (state.stalkerAgeTicks > NEAR_TIMEOUT) {
                     relocateFar(player, level, state, config, random);
                 }
             }
             case WINDOW -> {
-                if (staring(player, active, state) || withinVanish(player, active, config)) {
+                if (staring(player, active, state) || nearby(player, active, CLOSE_VANISH)) {
                     triggerReaction(player, active, state, config, random);
                 } else if (state.stalkerAgeTicks > NEAR_TIMEOUT || level.canSeeSky(player.blockPosition())) {
                     vanish(active, player, state, random);
@@ -131,7 +145,7 @@ public final class StalkerManager {
         despawn(player.serverLevel(), state);
         state.nextStalkerSpawnTick = 0L;
         final BlockPos pos = SpawnLocator.findSpawn(player, random, 12, 28);
-        return pos != null && spawnAt(player, player.serverLevel(), state, pos, StalkerBehavior.FAR) ? pos : null;
+        return pos != null && spawnAt(player, player.serverLevel(), state, pos, StalkerBehavior.FAR, false) ? pos : null;
     }
 
     public static void despawn(ServerLevel level, PlayerHorrorState state) {
@@ -148,7 +162,8 @@ public final class StalkerManager {
      */
     public static void jumpscareAttack(ServerPlayer player, PlayerHorrorState state, Random random) {
         HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 14);
-        if (random.nextDouble() < ConfigManager.get().entity.jumpscareKillChance) {
+        final int day = com.adaptivehorror.scheduler.DayProgression.dayOf(player.level());
+        if (random.nextDouble() < AdaptiveAI.killChance(day, ConfigManager.get().entity.jumpscareKillChance)) {
             state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
         }
     }
@@ -170,18 +185,15 @@ public final class StalkerManager {
         return player.distanceToSqr(stalker) <= r * r;
     }
 
-    /** Mostly vanish; strike with the day/night/underground attack chance (caves are deadliest). */
+    private static boolean nearby(ServerPlayer player, StalkerEntity stalker, double radius) {
+        return player.distanceToSqr(stalker) <= radius * radius;
+    }
+
+    /** Mostly vanish early on; strikes far more readily as the days pass (and at night/underground). */
     private static void triggerReaction(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
                                         HorrorConfig config, Random random) {
-        double chance;
-        if (state.stalkerBehavior == StalkerBehavior.CAVE) {
-            chance = config.entity.stalkerAttackChanceUnderground;
-        } else {
-            chance = player.level().isDay()
-                    ? config.entity.stalkerAttackChance : config.entity.stalkerAttackChanceNight;
-        }
-        // It grows bolder the more encounters you survive.
-        chance = Math.min(0.9, chance * AdaptiveAI.pressure(state));
+        final double chance = AdaptiveAI.strikeChance(player.serverLevel(), state,
+                state.stalkerBehavior == StalkerBehavior.CAVE, state.stalkerBlack);
         state.encounters++;
         if (random.nextDouble() < chance) {
             aggressiveReaction(player, stalker, state, random);
@@ -206,6 +218,38 @@ public final class StalkerManager {
         vanish(stalker, player, state, random);
     }
 
+    /** The tunnel ambush: it waits until you're in range, then charges and jumpscares on contact. */
+    private static void tickCaveRush(ServerPlayer player, StalkerEntity stalker, PlayerHorrorState state,
+                                     Random random) {
+        final Vec3 from = stalker.position();
+        final Vec3 to = player.position();
+        final double dist = from.distanceTo(to);
+
+        if (dist <= 2.0) {
+            caveRushHit(player, state, random); // jumpscare; 5-10% it then kills
+            stalker.discard();
+            clear(state);
+            return;
+        }
+        if (state.stalkerAgeTicks > 320) {     // you got away down the tunnel
+            vanish(stalker, player, state, random);
+            return;
+        }
+        if (dist > 18.0) {
+            return;                            // bides its time until you come into the tunnel
+        }
+        final Vec3 next = from.add(to.subtract(from).normalize().scale(0.85)); // a quick, unnatural charge
+        stalker.moveTo(next.x, next.y, next.z, stalker.getYRot(), 0.0F);
+        facePlayer(stalker, player);
+    }
+
+    private static void caveRushHit(ServerPlayer player, PlayerHorrorState state, Random random) {
+        HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 14);
+        if (random.nextDouble() < 0.08) {      // kills AFTER the jumpscare, ~5-10% of the time
+            state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
+        }
+    }
+
     /** Removes the stalker and arms the 15-60s gap before the next one may appear. */
     private static void vanish(StalkerEntity stalker, ServerPlayer player, PlayerHorrorState state, Random random) {
         stalker.discard();
@@ -222,7 +266,7 @@ public final class StalkerManager {
         if (player.isSleeping()) {
             if (level.getGameTime() % 20L == 0L && random.nextDouble() < config.entity.sleepAppearChance) {
                 final Vec3 front = frontOf(player, 2.5);
-                if (spawnAt(player, level, state, BlockPos.containing(front), StalkerBehavior.FRONT_SLEEP)) {
+                if (spawnAt(player, level, state, BlockPos.containing(front), StalkerBehavior.FRONT_SLEEP, false)) {
                     HorrorNet.sendSound2D(player, "iseeyou", 0.9F, 1.0F);
                     HorrorNet.sendVignettePulse(player, 25);
                 }
@@ -231,10 +275,11 @@ public final class StalkerManager {
         }
 
         // Underground: a black null at the player's own level, inside the cave - never the far surface.
+        // Half of them are tunnel-ambushers that charge instead of just watching.
         if (Locations.isUnderground(player)) {
-            final BlockPos cave = SpawnLocator.findUnderground(player, random, 8, 30);
-            if (cave != null) {
-                spawnAt(player, level, state, cave, StalkerBehavior.CAVE);
+            final BlockPos cave = SpawnLocator.findUnderground(player, random, 10, 30);
+            if (cave != null && spawnAt(player, level, state, cave, StalkerBehavior.CAVE, false)) {
+                state.stalkerRush = random.nextDouble() < 0.5;
             }
             return;
         }
@@ -242,14 +287,14 @@ public final class StalkerManager {
         // Smart, behaviour-driven placement (window when hiding, behind when AFK, far when vigilant).
         final StalkerBehavior placement = AdaptiveAI.chooseSurfacePlacement(player, state, level, random);
         if (placement == StalkerBehavior.WINDOW) {
-            final BlockPos window = SpawnLocator.findSkylit(player, random, 5, 16);
-            if (window != null && spawnAt(player, level, state, window, StalkerBehavior.WINDOW)) {
+            final BlockPos window = SpawnLocator.findSkylit(player, random, 8, 18);
+            if (window != null && spawnAt(player, level, state, window, StalkerBehavior.WINDOW, false)) {
                 HorrorNet.sendVignettePulse(player, 20);
                 return;
             }
         } else if (placement == StalkerBehavior.BEHIND) {
             final BlockPos behind = SpawnLocator.findBehind(player, random, BEHIND_MIN, BEHIND_MAX);
-            if (behind != null && spawnAt(player, level, state, behind, StalkerBehavior.BEHIND)) {
+            if (behind != null && spawnAt(player, level, state, behind, StalkerBehavior.BEHIND, false)) {
                 HorrorNet.sendVignettePulse(player, 18);
                 return;
             }
@@ -261,19 +306,24 @@ public final class StalkerManager {
                                  HorrorConfig config, Random random) {
         final BlockPos far = SpawnLocator.findSpawn(player, random,
                 config.entity.spawnDistanceMin, config.entity.spawnDistanceMax);
-        if (far != null) {
-            spawnAt(player, level, state, far, StalkerBehavior.FAR);
+        if (far == null) {
+            return;
         }
+        // From day 3 on, a black (more aggressive) null can appear even in daylight, beside the white.
+        final boolean black = level.isDay()
+                && com.adaptivehorror.scheduler.DayProgression.dayOf(level) >= 3
+                && random.nextDouble() < 0.30;
+        spawnAt(player, level, state, far, StalkerBehavior.FAR, black);
     }
 
     private static boolean spawnAt(ServerPlayer player, ServerLevel level, PlayerHorrorState state,
-                                   BlockPos pos, StalkerBehavior placement) {
+                                   BlockPos pos, StalkerBehavior placement, boolean forceBlack) {
         final StalkerEntity stalker = ModEntities.STALKER.create(level);
         if (stalker == null) {
             return false;
         }
         stalker.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0.0F, 0.0F);
-        stalker.setNightForm(placement == StalkerBehavior.CAVE || !level.isDay());
+        stalker.setNightForm(placement == StalkerBehavior.CAVE || !level.isDay() || forceBlack);
         facePlayer(stalker, player);
         if (!level.addFreshEntity(stalker)) {
             return false;
@@ -282,6 +332,8 @@ public final class StalkerManager {
         state.stalkerBehavior = placement;
         state.stalkerAgeTicks = 0;
         state.stalkerLookTicks = 0;
+        state.stalkerBlack = forceBlack;
+        state.stalkerRush = false;
         state.travelSinceRelocate = 0.0;
         return true;
     }
@@ -319,6 +371,8 @@ public final class StalkerManager {
         state.stalkerBehavior = null;
         state.stalkerAgeTicks = 0;
         state.stalkerLookTicks = 0;
+        state.stalkerRush = false;
+        state.stalkerBlack = false;
     }
 
     private static void accountTravel(ServerPlayer player, PlayerHorrorState state) {

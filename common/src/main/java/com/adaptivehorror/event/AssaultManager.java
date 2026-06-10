@@ -74,8 +74,9 @@ public final class AssaultManager {
         // Permanent day+night aggression only once null is present and the world is old enough.
         final boolean permanent = joined && day >= config.assault.aggressionDay;
 
-        // Automatic night roll (once a minute) - requires null to have joined.
-        if (joined && !permanent && !server.overworld().isDay() && now >= assaultEndTick
+        // Automatic roll (once a minute) - at night, and also in daylight from dayAssaultFromDay on.
+        final boolean canRollNow = !server.overworld().isDay() || day >= config.assault.dayAssaultFromDay;
+        if (joined && !permanent && canRollNow && now >= assaultEndTick
                 && now - lastNightRollTick >= 1200L) {
             lastNightRollTick = now;
             if (RNG.nextDouble() < config.assault.nightChancePerMinute) {

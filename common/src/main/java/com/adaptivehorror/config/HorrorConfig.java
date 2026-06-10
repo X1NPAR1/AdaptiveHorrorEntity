@@ -72,12 +72,8 @@ public final class HorrorConfig {
         /** Far spawn distance bounds from the player, in blocks (the "far" placement). */
         public int spawnDistanceMin = 75;
         public int spawnDistanceMax = 175;
-        /** When a jumpscare "attack" happens, the chance (0-1) it actually kills (else just scares). */
+        /** Base chance a jumpscare "attack" actually kills (else just scares). Scales up with the day. */
         public double jumpscareKillChance = 0.20;
-        /** Chance the stalker attacks (vs. vanishing) when triggered - by day, by night, and underground. */
-        public double stalkerAttackChance = 0.05;
-        public double stalkerAttackChanceNight = 0.18;
-        public double stalkerAttackChanceUnderground = 0.30;
         /** Chance the {@code iseeyou} whisper plays when a stalker vanishes on approach. */
         public double vanishWhisperChance = 0.10;
         /** Player approaches within this radius -> entity instantly despawns. */
@@ -145,6 +141,7 @@ public final class HorrorConfig {
         public int durationMaxSeconds = 90;
         public int radiusChunks = 4;
         public float contactDamage = 1.0f;
+        public int dayAssaultFromDay = 4;    // from this day, assaults can also strike in daylight
         public int aggressionDay = 10;       // permanent day+night aggression and 3x spawns after this
         public int extraSpawnPerCycle = 3;   // mobs added near each player per spawn cycle (post-day-10)
     }
@@ -164,8 +161,7 @@ public final class HorrorConfig {
         public int distanceMin = 50;
         public int distanceMax = 200;
         public int vanishRadius = 25;       // vanish (or strike) once the player is this close
-        public double attackChance = 0.05;  // chance a watcher strikes (day); night uses the higher value
-        public double attackChanceNight = 0.18;
+        // (Strike chance follows the shared day-scaled AdaptiveAI curve, like the main stalker.)
     }
 
     public final InventoryDrop inventoryDrop = new InventoryDrop();

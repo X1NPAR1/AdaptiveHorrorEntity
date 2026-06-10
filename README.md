@@ -1,6 +1,6 @@
 # Adaptive Horror Entity
 
-**Version 2.8.0** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
+**Version 2.9.0** · Minecraft **1.21.1** · **NeoForge + Fabric** (one codebase, Architectury
 multi-loader). The design goal is a single, intelligent supernatural presence — *null* — that makes
 the player feel *watched*: tension, doubt and paranoia over cheap jumpscares.
 
@@ -171,6 +171,16 @@ The whole game is rendered as if through a **dim old CRT television**: resolutio
 a slow rolling line and **occasional bursts of static/snow** — even jumpscares play out inside the TV
 frame. A quiet **CRT crackle** (`background.ogg`) loops the whole time, and the world carries a
 permanent **light haze** (distance fog pulled in ~20%). All of it is deliberately **not** disableable.
+
+## Escalation by day
+Strike chance climbs **steeply with the in-game day**: ~**0.20** on day 1, **0.40** day 2, **0.80**
+day 3, **1.25** day 4, then higher every day — so by day 4 it is already aggressive *in daylight*, and
+by **day 10+** it is brutal (the kill chance rises with the day too). Night and the black form add
+more on top. From **day 3** a **black, more-aggressive null can appear in daylight** beside the white
+one; from **day 4** mob assaults can strike by day as well, and **day 10** turns it permanent.
+
+In tight caves/tunnels a black null may **ambush you — charging fast and jumpscaring on contact**
+(with a small chance to kill right after).
 
 ## Intelligence
 `null` doesn't act at random — `AdaptiveAI` **reads the player**: hide indoors at night and it watches

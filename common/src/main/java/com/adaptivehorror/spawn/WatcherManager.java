@@ -59,9 +59,8 @@ public final class WatcherManager {
             facePlayer(watcher, player);
 
             if (player.distanceToSqr(watcher) <= (double) cfg.vanishRadius * cfg.vanishRadius) {
-                final double chance = player.level().isDay() ? cfg.attackChance : cfg.attackChanceNight;
-                if (random.nextDouble() < chance) {
-                    StalkerManager.jumpscareAttack(player, state, random); // 80% scare, 20% kill
+                if (random.nextDouble() < com.adaptivehorror.ai.AdaptiveAI.strikeChance(level, state, underground, false)) {
+                    StalkerManager.jumpscareAttack(player, state, random); // 80% scare, kill scales with day
                 }
                 watcher.discard();
                 it.remove();

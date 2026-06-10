@@ -36,6 +36,12 @@ public final class PlayerHorrorState {
     /** How many times the stalker has been triggered - the entity grows bolder with each one. */
     public int encounters;
 
+    /** This cave null charges the player (a tunnel ambush) instead of just standing and watching. */
+    public boolean stalkerRush;
+
+    /** This null is the black, more-aggressive form even though it spawned in daylight. */
+    public boolean stalkerBlack;
+
     /** Game-time tick at which a scheduled jumpscare-kill lands (0 = none). */
     public long pendingKillTick;
 
