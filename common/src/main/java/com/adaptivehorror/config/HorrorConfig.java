@@ -66,6 +66,10 @@ public final class HorrorConfig {
         public boolean globalEvents = true;
         public boolean mobLock = true;
         public boolean mobDeathHorror = true;
+        /** When one player is jumpscared by the stalker, every player sees the jumpscare. */
+        public boolean sharedJumpscare = true;
+        /** When the stalker kills one player, every player dies with them. */
+        public boolean sharedDeath = true;
     }
 
     /** Chance (0-1) that killing a mob births a black null from the corpse. */
@@ -129,6 +133,12 @@ public final class HorrorConfig {
         public int iSeeYouIntervalMaxSeconds = 1500;    // 25 min
         /** Spatial volume (0-1) for low ambient cues. */
         public float ambientVolume = 0.25f;
+        /**
+         * Constant background ambience loop (your {@code background.ogg}). Off by default. Set true to
+         * have it play continuously in every world (survives death/dimension/reconnect).
+         */
+        public boolean backgroundLoop = false;
+        public float backgroundVolume = 0.30f;
     }
 
     /**

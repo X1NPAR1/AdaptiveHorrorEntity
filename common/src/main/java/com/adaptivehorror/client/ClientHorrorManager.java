@@ -186,7 +186,11 @@ public final class ClientHorrorManager {
     // --- per-tick advance ----------------------------------------------------------------------
 
     public void tick() {
-        stopBackgroundLoop();
+        if (com.adaptivehorror.config.ConfigManager.get().audio.backgroundLoop) {
+            keepBackgroundLoop();
+        } else {
+            stopBackgroundLoop();
+        }
         // Occasional bursts of on-screen static/snow.
         if (crtStaticTicks > 0) {
             crtStaticTicks--;
@@ -436,7 +440,23 @@ public final class ClientHorrorManager {
         g.fill(x0, tearY + tearH, x1, tearY + tearH + 1, 0x66000000);
     }
 
-    /** Background ambience loop removed by request: ensure any lingering instance is silenced. */
+    /** Keeps the optional background ambience loop alive (config-gated; off by default). */
+    private void keepBackgroundLoop() {
+        if (mc.level == null) {
+            return; // the loop stops itself when the world unloads; restarted on the next world
+        }
+        final net.minecraft.client.sounds.SoundManager sm = mc.getSoundManager();
+        if (bgLoop == null || !sm.isActive(bgLoop)) {
+            final SoundEvent sound = lookup("background");
+            if (sound != null) {
+                bgLoop = new CrtAmbienceSound(sound,
+                        com.adaptivehorror.config.ConfigManager.get().audio.backgroundVolume);
+                sm.play(bgLoop);
+            }
+        }
+    }
+
+    /** Silences any lingering background loop instance (when the toggle is off). */
     private void stopBackgroundLoop() {
         if (bgLoop != null) {
             mc.getSoundManager().stop(bgLoop);

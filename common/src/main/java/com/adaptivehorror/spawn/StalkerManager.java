@@ -56,11 +56,25 @@ public final class StalkerManager {
         if (state.pendingKillTick != 0L && now >= state.pendingKillTick) {
             state.pendingKillTick = 0L;
             player.hurt(player.damageSources().genericKill(), Float.MAX_VALUE);
-            // A death is shared: the rest of the server feels it - a distant whisper and a blood pulse.
+            // A death is shared: every other player sees a jumpscare and, with sharedDeath, dies too.
             final net.minecraft.server.MinecraftServer server = player.getServer();
+            final HorrorConfig cfg = ConfigManager.get();
             if (server != null) {
-                HorrorNet.broadcastSound2DExcept(server, player, "iseeyou", 0.6F, 0.8F);
-                HorrorNet.broadcastVignettePulseExcept(server, player, 30);
+                final int img = 1 + random.nextInt(8);
+                final int snd = 1 + random.nextInt(4);
+                for (ServerPlayer other : server.getPlayerList().getPlayers()) {
+                    if (other == player) {
+                        continue;
+                    }
+                    if (cfg.features.sharedJumpscare) {
+                        HorrorNet.sendJumpscare(other, img, snd, 16);
+                    }
+                    if (cfg.features.sharedDeath) {
+                        other.hurt(other.damageSources().genericKill(), Float.MAX_VALUE);
+                    } else {
+                        HorrorNet.sendVignettePulse(other, 30); // at least feel it
+                    }
+                }
             }
         }
 
@@ -167,7 +181,18 @@ public final class StalkerManager {
      * (20%) of the time. Used by the stalker reaction and the watcher group.
      */
     public static void jumpscareAttack(ServerPlayer player, PlayerHorrorState state, Random random) {
-        HorrorNet.sendJumpscare(player, 1 + random.nextInt(8), 1 + random.nextInt(4), 14);
+        final int img = 1 + random.nextInt(8);
+        final int snd = 1 + random.nextInt(4);
+        HorrorNet.sendJumpscare(player, img, snd, 14);
+        // Shared jumpscare: the rest of the server sees the same scare at the same instant.
+        final net.minecraft.server.MinecraftServer server = player.getServer();
+        if (ConfigManager.get().features.sharedJumpscare && server != null) {
+            for (ServerPlayer other : server.getPlayerList().getPlayers()) {
+                if (other != player) {
+                    HorrorNet.sendJumpscare(other, img, snd, 14);
+                }
+            }
+        }
         final int day = com.adaptivehorror.scheduler.DayProgression.dayOf(player.level());
         if (random.nextDouble() < AdaptiveAI.killChance(day, ConfigManager.get().entity.jumpscareKillChance)) {
             state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;

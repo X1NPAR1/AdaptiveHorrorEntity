@@ -11,7 +11,7 @@ public final class Constants {
     public static final String MOD_ID = "adaptivehorror";
     public static final String MOD_NAME = "Adaptive Horror Entity";
     /** Bumped with each release; surfaced by {@code /ahe version} so the running jar can be verified. */
-    public static final String VERSION = "2.13.0";
+    public static final String VERSION = "2.14.0";
 
     private Constants() {
     }
