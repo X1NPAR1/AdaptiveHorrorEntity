@@ -57,6 +57,7 @@ public final class AdaptiveHorrorNeoForge {
         AssaultManager.reset();
         TotemManager.reset();
         com.adaptivehorror.event.TargetingManager.reset();
+        com.adaptivehorror.event.BloodMoonManager.reset();
     }
 
     @SubscribeEvent

@@ -4,7 +4,9 @@ import com.adaptivehorror.config.ConfigManager;
 import com.adaptivehorror.config.HorrorConfig;
 import com.adaptivehorror.entity.FakePlayerEntity;
 import com.adaptivehorror.entity.StalkerEntity;
+import com.adaptivehorror.events.ChatMessageEvent;
 import com.adaptivehorror.network.HorrorNet;
+import net.minecraft.network.chat.Component;
 import com.adaptivehorror.npc.NullManager;
 import com.adaptivehorror.registry.ModEntities;
 import com.adaptivehorror.scheduler.HorrorScheduler;
@@ -46,17 +48,23 @@ public final class MobDeathHorror {
         if (victim instanceof StalkerEntity || victim instanceof FakePlayerEntity) {
             return;
         }
-        if (RNG.nextDouble() >= config.mobDeathChance) {
+        // 5% until the late day, then a much higher 45% - mob kills become genuinely dangerous.
+        final int day = com.adaptivehorror.scheduler.DayProgression.dayOf(level);
+        final double chance = day < config.mobDeathLateDay ? config.mobDeathChance : config.mobDeathChanceLate;
+        if (RNG.nextDouble() >= chance) {
             return;
         }
 
         final Vec3 pos = victim.position();
 
-        final LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
-        if (bolt != null) {
-            bolt.moveTo(pos.x, pos.y, pos.z);
-            bolt.setVisualOnly(true);
-            level.addFreshEntity(bolt);
+        // Several lightning cracks around the corpse.
+        for (int i = 0; i < 3; i++) {
+            final LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
+            if (bolt != null) {
+                bolt.moveTo(pos.x + RNG.nextDouble() * 2 - 1, pos.y, pos.z + RNG.nextDouble() * 2 - 1);
+                bolt.setVisualOnly(true);
+                level.addFreshEntity(bolt);
+            }
         }
 
         final StalkerEntity apparition = ModEntities.STALKER.create(level);
@@ -71,13 +79,22 @@ public final class MobDeathHorror {
                             if (e != null) {
                                 e.discard();
                             }
+                            // Once it is gone, the effects lift.
+                            killer.removeEffect(MobEffects.DARKNESS);
+                            killer.removeEffect(MobEffects.CONFUSION);
                         }));
             }
         }
 
-        killer.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 60, 0, false, false, true));  // nausea I
-        killer.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 60, 0, false, false, true));   // darkness I
-        HorrorNet.sendSound2D(killer, "jumpscare" + (1 + RNG.nextInt(4)), 1.0F, 1.0F);
+        killer.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0, false, false, true));  // nausea I
+        killer.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 200, 0, false, false, true));   // darkness I
+        // Jumpscare SOUND only - never the on-screen image for this beat.
+        HorrorNet.sendSound2D(killer, "jumpscare" + (1 + RNG.nextInt(4)), 1.6F, 1.0F);
         HorrorNet.sendVignettePulse(killer, 25);
+        ChatMessageEvent.sendNullChat(killer, Component.literal(LINES[RNG.nextInt(LINES.length)]));
     }
+
+    private static final String[] LINES = {
+            "onu da aldım", "sıra sende", "teşekkürler", "bir tane daha", "beni besledin", "yaklaş"
+    };
 }

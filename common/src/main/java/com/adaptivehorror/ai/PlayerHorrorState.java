@@ -77,6 +77,11 @@ public final class PlayerHorrorState {
     /** Next tick at which the inventory-drop attempt rolls. 0 = unset. */
     public long nextInventoryDropTick;
 
+    /** Day-6+ assault timers and the pet-transformation roll. 0 = unset. */
+    public long nextPetTransformTick;
+    public long nextBehindAimlockTick;
+    public long nextParalysisTick;
+
     /** Live "watcher" nulls (the post-day-5 group that stands far off and stares). */
     public final java.util.List<UUID> watcherIds = new java.util.ArrayList<>();
     /** How many watchers to maintain this cycle (0 = unset). */

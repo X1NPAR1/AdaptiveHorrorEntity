@@ -78,7 +78,7 @@ public final class AimLockEvent implements HorrorEvent {
         final UUID apparitionId = apparition.getUUID();
 
         final int lockTicks = 80 + ctx.random.nextInt(41); // 4-6s
-        HorrorNet.sendAimLock(ctx.player, lockTicks);
+        HorrorNet.sendAimLock(ctx.player, lockTicks, false);
 
         // Everyone else feels it land, faintly.
         final MinecraftServer server = ctx.player.getServer();

@@ -45,6 +45,7 @@ public final class AdaptiveHorrorFabric implements ModInitializer {
             AssaultManager.reset();
             TotemManager.reset();
             com.adaptivehorror.event.TargetingManager.reset();
+            com.adaptivehorror.event.BloodMoonManager.reset();
         });
 
         UseBlockCallback.EVENT.register((player, world, hand, hit) -> {

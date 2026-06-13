@@ -5,14 +5,15 @@ import com.adaptivehorror.scheduler.EventContext;
 import com.adaptivehorror.scheduler.HorrorEvent;
 import com.adaptivehorror.scheduler.ScheduledAction;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
-import net.minecraft.world.level.block.SkullBlock;
 import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.world.level.block.state.BlockState;
+
 
 /**
  * Quiet, "impossible" tampering with the surroundings. One of: a door swinging open/shut on its own,
@@ -62,24 +63,24 @@ public final class WorldManipulationEvent implements HorrorEvent {
         switch (ctx.random.nextInt(6)) {
             case 0 -> {
                 if (!toggleNearestDoor(ctx)) {
-                    placeSkull(ctx);
+                    subtleScare(ctx);
                 }
             }
             case 1 -> {
                 if (!snuffNearestTorch(ctx)) {
-                    placeSkull(ctx);
+                    subtleScare(ctx);
                 }
             }
             case 2 -> {
                 if (!hauntDoorLoop(ctx)) { // the door that won't stop swinging
-                    placeSkull(ctx);
+                    subtleScare(ctx);
                 }
             }
             case 3 -> breakRandomBlock(ctx);
             default -> {
                 // Prefer a door/torch beat (indoors); only leave a skull when there's none nearby.
                 if (!toggleNearestDoor(ctx) && !snuffNearestTorch(ctx)) {
-                    placeSkull(ctx);
+                    subtleScare(ctx);
                 }
             }
         }
@@ -155,14 +156,44 @@ public final class WorldManipulationEvent implements HorrorEvent {
         return false;
     }
 
-    private static void placeSkull(EventContext ctx) {
+    /** Replaces the old "leave a skull" beat: one of a few subtler, non-littering scares. */
+    private static void subtleScare(EventContext ctx) {
+        switch (ctx.random.nextInt(3)) {
+            case 0 -> knock(ctx);          // a heavy knock from a nearby surface
+            case 1 -> smoke(ctx);          // a wisp of dark smoke curls up beside you
+            default -> tempCobweb(ctx);    // a cobweb appears, then is gone moments later
+        }
+    }
+
+    /** A knock from a random spot a few blocks away - "something rapped on the wall". */
+    private static void knock(EventContext ctx) {
+        final BlockPos at = ctx.player.blockPosition().offset(
+                ctx.random.nextInt(7) - 3, ctx.random.nextInt(3) - 1, ctx.random.nextInt(7) - 3);
+        ctx.level.playSound(null, at, SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1.4F, 0.5F);
+        ctx.level.playSound(null, at, SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1.2F, 0.5F);
+    }
+
+    private static void smoke(EventContext ctx) {
+        final BlockPos at = ctx.player.blockPosition().offset(
+                ctx.random.nextInt(5) - 2, 1, ctx.random.nextInt(5) - 2);
+        ctx.level.sendParticles(ParticleTypes.LARGE_SMOKE,
+                at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, 20, 0.2, 0.4, 0.2, 0.01);
+    }
+
+    /** A cobweb materialises in an empty space nearby and dissolves a few seconds later. */
+    private static void tempCobweb(EventContext ctx) {
         final BlockPos origin = ctx.player.blockPosition();
         for (int attempt = 0; attempt < 16; attempt++) {
             final BlockPos pos = origin.offset(
-                    ctx.random.nextInt(7) - 3, ctx.random.nextInt(3) - 1, ctx.random.nextInt(7) - 3);
-            if (ctx.level.getBlockState(pos).isAir() && ctx.level.getBlockState(pos.below()).isSolid()) {
-                ctx.level.setBlock(pos.immutable(), Blocks.SKELETON_SKULL.defaultBlockState()
-                        .setValue(SkullBlock.ROTATION, ctx.random.nextInt(16)), 3);
+                    ctx.random.nextInt(7) - 3, ctx.random.nextInt(3) - 1, ctx.random.nextInt(7) - 3).immutable();
+            if (ctx.level.getBlockState(pos).isAir()) {
+                final ServerLevel level = ctx.level;
+                level.setBlock(pos, Blocks.COBWEB.defaultBlockState(), 3);
+                ctx.state.scheduled.add(new ScheduledAction(level.getGameTime() + 100L, () -> {
+                    if (level.getBlockState(pos).is(Blocks.COBWEB)) {
+                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                    }
+                }));
                 return;
             }
         }

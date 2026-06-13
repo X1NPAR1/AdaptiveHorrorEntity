@@ -137,7 +137,9 @@ public final class StalkerManager {
                 }
             }
             case FRONT_SLEEP -> {
-                if (!player.isSleeping() || state.stalkerAgeTicks > FRONT_SLEEP_TIMEOUT) {
+                // It stands at the foot of the bed all night: gone the instant the player gets up, or
+                // quietly gone at dawn if they wait it out.
+                if (!player.isSleeping() || level.isDay()) {
                     vanish(active, player, state, random);
                 }
             }

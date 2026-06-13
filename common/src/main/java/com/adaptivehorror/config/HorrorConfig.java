@@ -68,14 +68,42 @@ public final class HorrorConfig {
         public boolean globalEvents = true;
         public boolean mobLock = true;
         public boolean mobDeathHorror = true;
+        public boolean petTransform = true;   // pets turning into null at night
+        public boolean bloodMoon = true;      // day 6+ blood moon
+        public boolean day6Assault = true;    // day 6+ behind-aimlock + paralysis ritual
         /** When one player is jumpscared by the stalker, every player sees the jumpscare. Off: per-player. */
         public boolean sharedJumpscare = false;
         /** When the stalker kills one player, every player dies with them. Off: per-player. */
         public boolean sharedDeath = false;
     }
 
-    /** Chance (0-1) that killing a mob births a black null from the corpse. */
+    /** Chance (0-1) that killing a mob births a black null from the corpse - before {@code mobDeathLateDay}. */
     public double mobDeathChance = 0.05;
+    /** The much higher chance from {@code mobDeathLateDay} onward. */
+    public double mobDeathChanceLate = 0.45;
+    public int mobDeathLateDay = 5;
+
+    public final Aggression aggression = new Aggression();
+
+    /** Day-6+ escalation: the blood moon, the pet transformation, and the two new null assaults. */
+    public static final class Aggression {
+        /** Pet (wolf/cat) → null transform: chance per minute at night, per player. */
+        public double petNightChancePerMinute = 0.05;
+        /** Blood moon: from {@code bloodMoonDay} on, by day it triggers every 3-5 min and forces night. */
+        public int bloodMoonDay = 6;
+        public int bloodMoonTriggerMinSeconds = 180;
+        public int bloodMoonTriggerMaxSeconds = 300;
+        public int bloodMoonDurationSeconds = 300;
+        /** Behind-aimlock assault: from day 6, every 10-15 min, null spawns behind and locks the view. */
+        public int behindAimlockMinSeconds = 600;
+        public int behindAimlockMaxSeconds = 900;
+        /** Paralysis ritual: every 10-20 min, full lock + 10s of chat + a charge that always jumpscares. */
+        public int paralysisMinSeconds = 600;
+        public int paralysisMaxSeconds = 1200;
+        public double paralysisKillChance = 0.04;
+        /** The plain charge (pet/behind) kills this often; it always jumpscares regardless. */
+        public double chargeKillChance = 0.05;
+    }
 
     /** Core stalking entity tuning. */
     public static final class Entity {
@@ -102,8 +130,8 @@ public final class HorrorConfig {
         public int effectDurationSecondsMax = 5;
         /** Seconds of being AFK after which the entity may appear directly behind the player. */
         public int afkAppearSeconds = 180;
-        /** Chance (0-1) that lying down summons the harmless 2s apparition at the foot of the bed. */
-        public double sleepAppearChance = 0.20;
+        /** Chance (0-1) that lying down summons the harmless apparition at the foot of the bed. */
+        public double sleepAppearChance = 0.35;
     }
 
     /** Horror scheduler cadence. The scheduler decides WHEN events may fire; intensity decides which. */

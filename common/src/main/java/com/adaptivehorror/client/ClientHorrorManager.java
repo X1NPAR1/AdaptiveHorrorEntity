@@ -58,10 +58,15 @@ public final class ClientHorrorManager {
 
     // Aim-lock (#17): the view is dragged to centre on the nearest null for a spell.
     private int aimLockTicks;
+    private boolean aimLockHard; // hard = full snap, the player cannot fight it at all
+
+    // Blood moon (day 6+): a sustained red wash over the whole screen.
+    private int bloodMoonTicks;
 
     /** Max degrees the locked/forced view may slew per tick - the player can still fight it a little. */
     private static final float FORCE_SLEW = 16.0F;
     private static final float AIM_SLEW = 22.0F;
+    private static final float AIM_SLEW_HARD = 90.0F; // effectively instant - no looking away
     /** Only ever lock onto a null within this range; beyond it the lock simply does nothing. */
     private static final double AIM_RANGE = 220.0;
 
@@ -77,6 +82,8 @@ public final class ClientHorrorManager {
 
     private static final double CRASH_CHANCE = 0.01;
     private static final double WINDOW_FX_CHANCE = 0.10;
+    /** Jumpscare sting volume - amplified (>1) because the stings were coming through too quietly. */
+    private static final float JUMPSCARE_VOLUME = 2.0F;
 
     private ClientHorrorManager() {
     }
@@ -87,7 +94,7 @@ public final class ClientHorrorManager {
         this.jumpscareTexture = jumpscareImage(imageIndex);
         this.jumpscareTicks = durationTicks;
         this.jumpscareMaxTicks = Math.max(1, durationTicks);
-        playSound2D(jumpscareSoundPath(soundIndex), 1.0F, 1.0F);
+        playSound2D(jumpscareSoundPath(soundIndex), JUMPSCARE_VOLUME, 1.0F);
 
         // Rarely, the game "breaks": a 1% hard crash, or a 10% spell where the window itself shakes,
         // shrinks and grows on its own.
@@ -158,8 +165,14 @@ public final class ClientHorrorManager {
     }
 
     /** Begin the aim-lock beat (#17): drag the view onto the nearest null for {@code ticks}. */
-    public void startAimLock(int ticks) {
+    public void startAimLock(int ticks, boolean hard) {
         this.aimLockTicks = Math.max(this.aimLockTicks, ticks);
+        this.aimLockHard = hard;
+    }
+
+    /** Start (or extend) the blood-moon red wash for {@code ticks}. */
+    public void startBloodMoon(int ticks) {
+        this.bloodMoonTicks = Math.max(this.bloodMoonTicks, ticks);
     }
 
     private float shakeMagnitude() {
@@ -231,6 +244,9 @@ public final class ClientHorrorManager {
             tickAimLock();
             aimLockTicks--;
         }
+        if (bloodMoonTicks > 0) {
+            bloodMoonTicks--;
+        }
         if (pendingCrash) {
             pendingCrash = false;
             crashGame();
@@ -268,7 +284,7 @@ public final class ClientHorrorManager {
         final double horiz = Math.sqrt(to.x * to.x + to.z * to.z);
         final float yaw = (float) Math.toDegrees(Math.atan2(-to.x, to.z));
         final float pitch = (float) (-Math.toDegrees(Math.atan2(to.y, horiz)));
-        slewView(yaw, pitch, AIM_SLEW);
+        slewView(yaw, pitch, aimLockHard ? AIM_SLEW_HARD : AIM_SLEW);
     }
 
     /** Rotate the player's view toward a target, capped per tick so it pulls rather than teleports. */
@@ -368,6 +384,11 @@ public final class ClientHorrorManager {
         if (blackoutTicks > 0) {
             final float a = Math.min(1.0F, blackoutTicks / 4.0F);
             graphics.fill(0, 0, w, h, withAlpha(0x000000, a));
+        }
+        if (bloodMoonTicks > 0) {
+            // A breathing red wash over everything - the blood moon hanging over the world.
+            final float pulse = 0.18F + 0.06F * (float) Math.sin(System.currentTimeMillis() / 600.0);
+            graphics.fill(0, 0, w, h, withAlpha(0x6e0000, pulse));
         }
 
         // The always-on "old TV" look, drawn last so the whole picture - HUD and jumpscares alike -

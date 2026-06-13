@@ -77,8 +77,14 @@ public final class ClientFxHandler {
                 mgr.startForcedLook(duration, intensity);
                 break;
             }
-            case AIM_LOCK:
-                mgr.startAimLock(data.readVarInt());
+            case AIM_LOCK: {
+                final int duration = data.readVarInt();
+                final boolean hard = data.readBoolean();
+                mgr.startAimLock(duration, hard);
+                break;
+            }
+            case BLOOD_MOON:
+                mgr.startBloodMoon(data.readVarInt());
                 break;
         }
     }

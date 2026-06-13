@@ -36,7 +36,8 @@ public final class HorrorNet {
         SHOW_DISCLAIMER,
         CAMERA_SHAKE,
         FORCE_LOOK,
-        AIM_LOCK
+        AIM_LOCK,
+        BLOOD_MOON
     }
 
     private static FriendlyByteBuf buf(FxType type) {
@@ -129,8 +130,16 @@ public final class HorrorNet {
      * Aim-lock (#17): for {@code durationTicks} the client drags the view to centre on the nearest
      * null. Also timer-bounded; the player can fight it but regains full control when it ends.
      */
-    public static void sendAimLock(ServerPlayer player, int durationTicks) {
+    public static void sendAimLock(ServerPlayer player, int durationTicks, boolean hard) {
         final FriendlyByteBuf b = buf(FxType.AIM_LOCK);
+        b.writeVarInt(durationTicks);
+        b.writeBoolean(hard);
+        Services.NETWORK.sendFx(player, b);
+    }
+
+    /** Blood moon: a sustained red wash over the player's screen for {@code durationTicks}. */
+    public static void sendBloodMoon(ServerPlayer player, int durationTicks) {
+        final FriendlyByteBuf b = buf(FxType.BLOOD_MOON);
         b.writeVarInt(durationTicks);
         Services.NETWORK.sendFx(player, b);
     }

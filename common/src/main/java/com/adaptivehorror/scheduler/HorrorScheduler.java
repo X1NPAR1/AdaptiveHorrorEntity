@@ -50,6 +50,7 @@ public final class HorrorScheduler {
             NullManager.tick(server);
             MobLockManager.tick(server);
             AssaultManager.tick(server);
+            com.adaptivehorror.event.BloodMoonManager.tick(server);
         }
     }
 
@@ -95,6 +96,8 @@ public final class HorrorScheduler {
         tickTravelSound(player, state, config, intensity);
         PeriodicAudioScheduler.tick(player, state, config, RNG);
         InventoryDropManager.tick(player, state, config, RNG);
+        com.adaptivehorror.event.PetTransformManager.tick(player, state, config, RNG);
+        com.adaptivehorror.event.Day6AssaultManager.tick(player, state, config, RNG);
         tickEventRoll(player, state, config, day, intensity);
         tickEnvEvent(player, state, config, day, intensity);
     }

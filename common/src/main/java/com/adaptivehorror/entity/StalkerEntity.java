@@ -60,6 +60,13 @@ public class StalkerEntity extends Mob {
         if (level().isClientSide) {
             return;
         }
+        // Null is the gate for the entire haunting: if it is not currently "on the server" (it left, or
+        // was defeated, or never joined), NO null may exist anywhere. This is the hard guarantee behind
+        // "null sunucuda değilse hepsi kaybolsun" - enforced per-entity so nothing can slip through.
+        if (!com.adaptivehorror.npc.NullManager.hasJoined()) {
+            discard();
+            return;
+        }
         // Self-despawn failsafe: the manager owns the lifecycle, but if it ever loses the reference
         // (chunk churn, dimension change, desync) the entity must still tidy itself up.
         if (++serverAge > MAX_LIFETIME_TICKS) {
