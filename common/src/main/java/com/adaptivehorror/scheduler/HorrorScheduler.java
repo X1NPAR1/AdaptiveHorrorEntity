@@ -114,23 +114,42 @@ public final class HorrorScheduler {
         STATES.clear();
     }
 
-    /** Runs any deferred horror steps whose time has come. */
+    /**
+     * Runs any deferred horror steps whose time has come.
+     *
+     * <p>Critically, due actions are collected and removed <em>first</em>, then run only after the
+     * iteration is complete. Many actions schedule further actions (the totem ritual, the forest fire,
+     * the null charge, burst events...), which mutates {@code state.scheduled}; running them mid-iteration
+     * would throw {@link java.util.ConcurrentModificationException} and crash the server tick loop. New
+     * actions added during a run are simply picked up on the next tick.
+     */
     private static void drainScheduled(ServerPlayer player, PlayerHorrorState state) {
         if (state.scheduled.isEmpty()) {
             return;
         }
         final long now = player.level().getGameTime();
-        state.scheduled.removeIf(a -> {
-            if (now < a.fireTick) {
-                return false;
+        java.util.List<ScheduledAction> due = null;
+        final java.util.Iterator<ScheduledAction> it = state.scheduled.iterator();
+        while (it.hasNext()) {
+            final ScheduledAction a = it.next();
+            if (now >= a.fireTick) {
+                if (due == null) {
+                    due = new java.util.ArrayList<>();
+                }
+                due.add(a);
+                it.remove();
             }
+        }
+        if (due == null) {
+            return;
+        }
+        for (ScheduledAction a : due) {
             try {
                 a.action.run();
             } catch (Exception e) {
                 AdaptiveHorror.LOGGER.debug("Scheduled action failed", e);
             }
-            return true;
-        });
+        }
     }
 
     /** Resolves (creating if needed) the per-player state. Used by debug commands. */

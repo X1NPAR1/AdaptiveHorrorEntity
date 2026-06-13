@@ -70,8 +70,7 @@ public final class ClientHorrorManager {
     /** Only ever lock onto a null within this range; beyond it the lock simply does nothing. */
     private static final double AIM_RANGE = 220.0;
 
-    // Window torment (10% of jumpscares) and the rare crash (1%).
-    private boolean pendingCrash;
+    // Window torment (10% of jumpscares).
     private int windowFxTicks;
     private int origWinW, origWinH, origWinX, origWinY;
     private boolean windowSaved;
@@ -80,7 +79,6 @@ public final class ClientHorrorManager {
     private CrtAmbienceSound bgLoop;
     private int crtStaticTicks;
 
-    private static final double CRASH_CHANCE = 0.01;
     private static final double WINDOW_FX_CHANCE = 0.10;
     /** Jumpscare sting volume - amplified (>1) because the stings were coming through too quietly. */
     private static final float JUMPSCARE_VOLUME = 2.0F;
@@ -96,12 +94,8 @@ public final class ClientHorrorManager {
         this.jumpscareMaxTicks = Math.max(1, durationTicks);
         playSound2D(jumpscareSoundPath(soundIndex), JUMPSCARE_VOLUME, 1.0F);
 
-        // Rarely, the game "breaks": a 1% hard crash, or a 10% spell where the window itself shakes,
-        // shrinks and grows on its own.
-        final double roll = random.nextDouble();
-        if (roll < CRASH_CHANCE) {
-            pendingCrash = true;
-        } else if (roll < CRASH_CHANCE + WINDOW_FX_CHANCE) {
+        // Rarely (10%), a spell where the window itself shakes, shrinks and grows on its own.
+        if (random.nextDouble() < WINDOW_FX_CHANCE) {
             startWindowTorment();
         }
     }
@@ -247,10 +241,6 @@ public final class ClientHorrorManager {
         if (bloodMoonTicks > 0) {
             bloodMoonTicks--;
         }
-        if (pendingCrash) {
-            pendingCrash = false;
-            crashGame();
-        }
         if (windowFxTicks > 0) {
             tickWindowTorment();
         }
@@ -318,7 +308,7 @@ public final class ClientHorrorManager {
         return best;
     }
 
-    // --- window torment / crash ----------------------------------------------------------------
+    // --- window torment ------------------------------------------------------------------------
 
     private void startWindowTorment() {
         try {
@@ -358,12 +348,6 @@ public final class ClientHorrorManager {
                     origWinX + random.nextInt(61) - 30, origWinY + random.nextInt(61) - 30); // shake
         } catch (Throwable ignored) {
         }
-    }
-
-    private void crashGame() {
-        final net.minecraft.CrashReport report =
-                net.minecraft.CrashReport.forThrowable(new RuntimeException("null"), "null");
-        throw new net.minecraft.ReportedException(report);
     }
 
     // --- HUD rendering -------------------------------------------------------------------------
