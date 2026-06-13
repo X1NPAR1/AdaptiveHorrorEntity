@@ -30,42 +30,52 @@ public final class AdaptiveAI {
     private AdaptiveAI() {
     }
 
-    /** Multiplier (1.0 → ~1.8) applied to the strike chance, rising with encounters survived. */
+    /** Multiplier (1.0 → ~1.5) applied to the strike chance, rising slowly with encounters survived. */
     public static double pressure(PlayerHorrorState state) {
-        return 1.0 + Math.min(0.8, state.encounters * 0.03);
+        return 1.0 + Math.min(0.5, state.encounters * 0.015);
     }
 
     /**
-     * Base strike chance for the in-game day - it escalates steeply: ~0.20 the first day, 0.40 the
-     * second, 0.80 the third, 1.25 the fourth, then +0.25 each day after. By day 10+ it is effectively
-     * always striking (values &gt;1 also feed the kill chance).
+     * Base strike chance for the in-game day. Deliberately <b>gentle for the first days</b> so the early
+     * game is suspense, not a jumpscare every minute: ~5% on day 1, creeping up to a hard but survivable
+     * ~0.9 by the second week. (Higher values also feed the kill chance.)
      */
     public static double attackBase(int day) {
-        if (day <= 0) {
-            return 0.20;
-        }
-        if (day == 1) {
-            return 0.40;
+        if (day <= 1) {
+            return 0.05;
         }
         if (day == 2) {
-            return 0.80;
+            return 0.08;
         }
-        return 1.25 + (day - 3) * 0.25;
+        if (day == 3) {
+            return 0.15;
+        }
+        if (day == 4) {
+            return 0.28;
+        }
+        if (day == 5) {
+            return 0.42;
+        }
+        return Math.min(0.95, 0.42 + (day - 5) * 0.10);
     }
 
     /**
-     * The full strike chance: the day curve, made deadlier underground/at night and by accumulated
-     * pressure. Clamped to [0,1] for the roll.
+     * The full strike chance. The white surface day-watcher is <b>far gentler</b> (it mostly just
+     * vanishes); the black night/cave forms are the aggressive ones. Clamped for the roll.
      */
     public static double strikeChance(ServerLevel level, PlayerHorrorState state, boolean cave, boolean black) {
         final int day = DayProgression.dayOf(level);
         double chance = attackBase(day);
+        final boolean white = !cave && !black && level.isDay();
         if (cave) {
-            chance += 0.20;                       // caves are the deadliest
+            chance += 0.12;                       // caves are the deadliest
         } else if (!level.isDay() || black) {
-            chance += 0.12;                       // night, or the rare daytime black form, is deadlier
+            chance += 0.08;                       // night / the black form is deadlier
         }
-        return Math.min(1.0, chance * pressure(state));
+        if (white) {
+            chance *= 0.3;                        // the daytime white watcher barely strikes
+        }
+        return Math.min(0.95, chance * pressure(state));
     }
 
     /** Chance a strike actually kills, also rising with the day (very lethal past day 10). */

@@ -192,6 +192,14 @@ public final class StalkerManager {
      * (20%) of the time. Used by the stalker reaction and the watcher group.
      */
     public static void jumpscareAttack(ServerPlayer player, PlayerHorrorState state, Random random) {
+        // Global cooldown: even when a strike "lands", it cannot fire a full jumpscare more often than
+        // the cooldown allows. Suppressed strikes become a quiet unease instead - this is what stops the
+        // "ten jumpscares in five minutes" problem while keeping encounters frequent.
+        if (!offJumpscareCooldown(player, state)) {
+            HorrorNet.sendVignettePulse(player, 18);
+            return;
+        }
+        markJumpscare(player, state);
         final int img = com.adaptivehorror.util.Jumpscares.randomImage(random);
         final int snd = 1 + random.nextInt(4);
         HorrorNet.sendJumpscare(player, img, snd, 14);
@@ -208,6 +216,16 @@ public final class StalkerManager {
         if (random.nextDouble() < AdaptiveAI.killChance(day, ConfigManager.get().entity.jumpscareKillChance)) {
             state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
         }
+    }
+
+    /** True if enough time has passed since the last full-screen jumpscare for this player. */
+    private static boolean offJumpscareCooldown(ServerPlayer player, PlayerHorrorState state) {
+        final long cd = (long) ConfigManager.get().scheduler.jumpscareCooldownSeconds * 20L;
+        return player.level().getGameTime() - state.lastJumpscareTick >= cd;
+    }
+
+    private static void markJumpscare(ServerPlayer player, PlayerHorrorState state) {
+        state.lastJumpscareTick = player.level().getGameTime();
     }
 
     // --- triggering ----------------------------------------------------------------------------
@@ -240,10 +258,13 @@ public final class StalkerManager {
         if (random.nextDouble() < chance) {
             aggressiveReaction(player, stalker, state, random);
         } else {
-            // The passive white (day) watcher is unsettling on its own: 10% it jumpscares as it goes.
+            // The passive white (day) watcher is unsettling on its own: a small chance it jumpscares as
+            // it goes - but still subject to the global cooldown so it can't spam.
             final boolean white = state.stalkerBehavior == StalkerBehavior.FAR
                     && !state.stalkerBlack && player.level().isDay();
-            if (white && random.nextDouble() < config.entity.whiteVanishJumpscareChance) {
+            if (white && random.nextDouble() < config.entity.whiteVanishJumpscareChance
+                    && offJumpscareCooldown(player, state)) {
+                markJumpscare(player, state);
                 HorrorNet.sendJumpscare(player, com.adaptivehorror.util.Jumpscares.randomImage(random), 1 + random.nextInt(4), 12);
             } else if (random.nextDouble() < config.entity.vanishWhisperChance) {
                 HorrorNet.sendSound2D(player, "iseeyou", 0.8F, 1.0F);
@@ -291,6 +312,11 @@ public final class StalkerManager {
     }
 
     private static void caveRushHit(ServerPlayer player, PlayerHorrorState state, Random random) {
+        if (!offJumpscareCooldown(player, state)) {
+            HorrorNet.sendVignettePulse(player, 18);
+            return;
+        }
+        markJumpscare(player, state);
         HorrorNet.sendJumpscare(player, com.adaptivehorror.util.Jumpscares.randomImage(random), 1 + random.nextInt(4), 14);
         if (random.nextDouble() < 0.08) {      // kills AFTER the jumpscare, ~5-10% of the time
             state.pendingKillTick = player.level().getGameTime() + KILL_DELAY_TICKS;
@@ -366,10 +392,11 @@ public final class StalkerManager {
         if (Math.abs(far.getY() - player.getY()) > VERTICAL_SPAWN_LIMIT) {
             return;
         }
-        // Day 1-2: never a daytime black null. From day 3 the chance grows each day up to the cap.
+        // Day 1-3: NEVER a daytime black null - daytime is white-only on the surface. From day 4 the
+        // black form starts bleeding into daylight, growing each day up to the cap.
         final int day = com.adaptivehorror.scheduler.DayProgression.dayOf(level);
-        final double blackChance = day < 3 ? 0.0
-                : Math.min(config.entity.daytimeBlackChanceCap, config.entity.daytimeBlackChancePerDay * (day - 2));
+        final double blackChance = day < 4 ? 0.0
+                : Math.min(config.entity.daytimeBlackChanceCap, config.entity.daytimeBlackChancePerDay * (day - 3));
         final boolean black = level.isDay() && random.nextDouble() < blackChance;
         spawnAt(player, level, state, far, StalkerBehavior.FAR, black);
     }

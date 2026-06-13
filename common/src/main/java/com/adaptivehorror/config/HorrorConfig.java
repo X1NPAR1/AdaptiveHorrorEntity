@@ -115,7 +115,7 @@ public final class HorrorConfig {
         /** Chance the {@code iseeyou} whisper plays when a stalker vanishes on approach. */
         public double vanishWhisperChance = 0.10;
         /** Chance a passive white (day) null fires a jumpscare as it vanishes (else silent). */
-        public double whiteVanishJumpscareChance = 0.10;
+        public double whiteVanishJumpscareChance = 0.05;
         /** Daytime black-null chance grows by this per day past day 2, up to the cap (day 3+ only). */
         public double daytimeBlackChancePerDay = 0.12;
         public double daytimeBlackChanceCap = 0.60;
@@ -150,8 +150,8 @@ public final class HorrorConfig {
         public int travelSoundBlocks = 120;
         /** Chance (0-1) that a travel-sound event escalates into the travel jumpscare. */
         public double travelJumpscareChance = 0.10;
-        /** Minimum seconds between any two full-screen jumpscares (global cooldown). */
-        public int jumpscareCooldownSeconds = 180;
+        /** Minimum seconds between any two full-screen jumpscares (global cooldown, all sources). */
+        public int jumpscareCooldownSeconds = 45;
 
         /**
          * Guaranteed environmental-tampering cadence (#13), independent of the weighted roll. Every
